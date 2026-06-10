@@ -1,29 +1,13 @@
-const CACHE = 'motor40-v1';
-const ASSETS = ['/', '/index.html'];
-
+const V = 'motor40-demo-v1';
+const FILES = ['/', '/index.html'];
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
-  );
+  e.waitUntil(caches.open(V).then(c => c.addAll(FILES)));
   self.skipWaiting();
 });
-
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))));
   self.clients.claim();
 });
-
 self.addEventListener('fetch', e => {
-  // Para iframes de Grafana, siempre red primero
-  if (e.request.url.includes('grafana')) {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    return;
-  }
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });

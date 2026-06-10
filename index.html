@@ -1,731 +1,734 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0a0d12"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Motor 4.0"/>
-  <title>Motor 4.0</title>
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="apple-touch-icon" href="icon-192.png"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#080b10"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Motor 4.0 · Demo</title>
+<link rel="manifest" href="manifest.json"/>
+<style>
+/* ── TOKENS ─────────────────────────────────── */
+:root{
+  --bg:      #080b10;
+  --s1:      #0f1520;
+  --s2:      #161e2e;
+  --s3:      #1e2a3f;
+  --border:  #2a3a52;
+  --accent:  #00e5ff;
+  --accent2: #7b61ff;
+  --ok:      #00d68f;
+  --warn:    #ffaa00;
+  --danger:  #ff4757;
+  --text:    #dde6f0;
+  --muted:   #5a7190;
+  --mono:    'JetBrains Mono','Fira Mono','Courier New',monospace;
+  --ui:      'Inter',system-ui,sans-serif;
+  --r:       10px;
+  --sat:     env(safe-area-inset-top,0px);
+  --sab:     env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidden;-webkit-font-smoothing:antialiased}
 
-  <style>
-    /* ── TOKENS ── */
-    :root {
-      --bg:        #0a0d12;
-      --surface:   #131820;
-      --surface2:  #1c2330;
-      --border:    #2a3545;
-      --accent:    #00d4ff;
-      --accent2:   #7c3aed;
-      --ok:        #22c55e;
-      --warn:      #f59e0b;
-      --danger:    #ef4444;
-      --text:      #e8edf4;
-      --muted:     #6b7a8d;
-      --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
-      --font-ui:   'Inter', system-ui, sans-serif;
-      --safe-top:  env(safe-area-inset-top, 0px);
-      --safe-bot:  env(safe-area-inset-bottom, 0px);
-    }
+/* ── SHELL ───────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100dvh;padding-top:var(--sat)}
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── HEADER ──────────────────────────────────── */
+header{
+  flex-shrink:0;background:var(--s1);
+  border-bottom:1px solid var(--border);
+  padding:10px 14px 8px;
+}
+.hrow{display:flex;align-items:center;justify-content:space-between}
+.mid{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:2px}
+.mname{font-size:16px;font-weight:800;letter-spacing:-.03em}
+.badge{
+  display:flex;align-items:center;gap:5px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:20px;padding:5px 10px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;
+}
+.dot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite}
+.dot.ok    {background:var(--ok);  box-shadow:0 0 7px var(--ok)}
+.dot.warn  {background:var(--warn);box-shadow:0 0 7px var(--warn)}
+.dot.danger{background:var(--danger);box-shadow:0 0 7px var(--danger)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-    html, body {
-      height: 100%; width: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-ui);
-      overflow: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
+/* ── PILL BAR ────────────────────────────────── */
+.pills{
+  display:flex;gap:7px;overflow-x:auto;
+  padding:8px 14px;flex-shrink:0;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  scrollbar-width:none;
+}
+.pills::-webkit-scrollbar{display:none}
+.pill{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:9px;padding:6px 12px;min-width:66px;
+  transition:border-color .25s;
+}
+.pill.hi{border-color:var(--warn)}
+.pill.crit{border-color:var(--danger)}
+.plbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
+.pval{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1}
+.pval.c-acc {color:var(--accent)}
+.pval.c-ok  {color:var(--ok)}
+.pval.c-w   {color:var(--warn)}
+.pval.c-d   {color:var(--danger)}
+.punit{font-size:8px;color:var(--muted);margin-top:1px}
 
-    /* ── LAYOUT SHELL ── */
-    #app {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-      padding-top: var(--safe-top);
-    }
+/* ── TAB BAR ─────────────────────────────────── */
+.tabs{
+  display:flex;flex-shrink:0;overflow-x:auto;
+  background:var(--s1);border-bottom:1px solid var(--border);
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none}
+.tb{
+  flex-shrink:0;padding:9px 15px;font-size:11px;font-weight:700;
+  color:var(--muted);background:none;border:none;
+  border-bottom:2px solid transparent;cursor:pointer;
+  letter-spacing:.05em;transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.tb.on{color:var(--accent);border-bottom-color:var(--accent)}
 
-    /* ── HEADER ── */
-    header {
-      flex-shrink: 0;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 16px 10px;
-    }
-    .header-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .motor-id {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-    .motor-name {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--text);
-    }
-    .health-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 5px 10px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-    .health-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--ok);
-      box-shadow: 0 0 6px var(--ok);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0.4; }
-    }
-    .health-dot.warn   { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
-    .health-dot.danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+/* ── PANELS ──────────────────────────────────── */
+.content{flex:1;overflow:hidden;position:relative}
+.panel{display:none;position:absolute;inset:0;overflow-y:auto;padding-bottom:calc(12px + var(--sab))}
+.panel.on{display:block}
 
-    /* ── QUICK METRICS BAR ── */
-    .metrics-bar {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 10px 16px;
-      flex-shrink: 0;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      scrollbar-width: none;
-    }
-    .metrics-bar::-webkit-scrollbar { display: none; }
+/* ── CHART CARD ──────────────────────────────── */
+.card{
+  margin:12px 14px;background:var(--s2);
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+}
+.clbl{
+  font-family:var(--mono);font-size:9px;color:var(--muted);
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:9px 12px 6px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.clbl span{font-size:9px;color:var(--border)}
+canvas{display:block;width:100%;touch-action:none}
 
-    .metric-pill {
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 7px 14px;
-      min-width: 72px;
-      transition: border-color .2s;
-    }
-    .metric-pill.alert { border-color: var(--warn); }
-    .metric-label {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 3px;
-    }
-    .metric-value {
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-    }
-    .metric-value.ok     { color: var(--ok); }
-    .metric-value.warn   { color: var(--warn); }
-    .metric-value.danger { color: var(--danger); }
-    .metric-unit {
-      font-size: 9px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
+/* ── RUL RING ────────────────────────────────── */
+.rul-wrap{display:flex;flex-direction:column;align-items:center;padding:18px 14px 8px}
+.rul-wrap svg{max-width:160px;width:100%}
+.rul-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+.rul-sub strong{color:var(--accent)}
 
-    /* ── TABS ── */
-    .tab-bar {
-      display: flex;
-      flex-shrink: 0;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .tab-bar::-webkit-scrollbar { display: none; }
+/* ── PRED LIST ───────────────────────────────── */
+.pred{padding:0 14px}
+.pitem{
+  display:flex;gap:11px;align-items:flex-start;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:var(--r);padding:12px 13px;margin-bottom:9px;
+  transition:border-color .3s;
+}
+.pitem.w{border-color:var(--warn)}
+.pitem.ok{border-color:var(--ok)}
+.pitem.d{border-color:var(--danger)}
+.pico{font-size:22px;flex-shrink:0;margin-top:1px}
+.pmain{flex:1}
+.ptit{font-size:13px;font-weight:700;margin-bottom:3px}
+.psub{font-size:11px;color:var(--muted);line-height:1.45}
+.peta{font-family:var(--mono);font-size:10px;margin-top:5px}
+.peta.w{color:var(--warn)}
+.peta.ok{color:var(--ok)}
+.peta.d{color:var(--danger)}
 
-    .tab-btn {
-      flex-shrink: 0;
-      padding: 10px 18px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      letter-spacing: 0.04em;
-      transition: color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-    .tab-btn.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
+/* ── FICHA AAS ───────────────────────────────── */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
+.fi{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px}
+.fk{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.fv{font-size:13px;font-weight:700}
+.fv.a{color:var(--accent)}
+.mbar{margin:0 14px 10px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.mbartit{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.mrow{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.mnom{font-size:11px;color:var(--muted);width:72px;flex-shrink:0}
+.mtrack{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.mfill{height:100%;border-radius:3px;transition:width 1s ease}
+.mfill.cu{background:#f59e0b}
+.mfill.fe{background:#6b7a8d}
+.mfill.al{background:#60a5fa}
+.mkg{font-family:var(--mono);font-size:10px;color:var(--text);width:40px;text-align:right}
 
-    /* ── TAB CONTENT ── */
-    .tab-content {
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-    }
-    .tab-panel {
-      display: none;
-      position: absolute;
-      inset: 0;
-      overflow-y: auto;
-      padding-bottom: calc(16px + var(--safe-bot));
-    }
-    .tab-panel.active { display: block; }
+/* ── HISTORIAL ───────────────────────────────── */
+.hitem{display:flex;gap:11px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border)}
+.hdot{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
+.hdot.m{background:var(--warn)}
+.hdot.a{background:var(--danger)}
+.htxt{font-size:12px;line-height:1.4}
+.hdt{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
 
-    /* ── GRAFANA IFRAME PANEL ── */
-    .grafana-panel {
-      width: 100%;
-      height: 320px;
-      border: none;
-      background: var(--surface);
-      border-radius: 0;
-    }
-    .panel-block {
-      margin: 12px 16px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--surface2);
-    }
-    .panel-label {
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 10px 14px 6px;
-      border-bottom: 1px solid var(--border);
-    }
+/* ── FOOTER ──────────────────────────────────── */
+footer{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  gap:6px;padding:5px 14px calc(5px + var(--sab));
+  background:var(--s1);border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:9px;color:var(--muted);
+}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok);animation:blink 1.5s infinite}
 
-    /* ── AAS FICHA ── */
-    .ficha-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 14px 16px;
-    }
-    .ficha-item {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-    }
-    .ficha-key {
-      font-size: 9px;
-      font-family: var(--font-mono);
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    .ficha-val {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .ficha-val.accent { color: var(--accent); }
-
-    .mat-bar {
-      margin: 0 16px 10px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-    }
-    .mat-title {
-      font-size: 11px;
-      font-family: var(--font-mono);
-      color: var(--muted);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    .mat-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-    .mat-name { font-size: 12px; color: var(--muted); width: 80px; flex-shrink: 0; }
-    .mat-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .mat-fill  { height: 100%; border-radius: 3px; }
-    .mat-fill.cu { background: #f59e0b; }
-    .mat-fill.fe { background: #6b7a8d; }
-    .mat-fill.al { background: #60a5fa; }
-    .mat-kg { font-family: var(--font-mono); font-size: 11px; color: var(--text); width: 42px; text-align: right; }
-
-    /* ── RUL / PREDICCIONES ── */
-    .rul-ring-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 16px 10px;
-    }
-    .rul-ring-wrap svg { max-width: 180px; }
-    .rul-label {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      letter-spacing: 0.08em;
-    }
-
-    .pred-list { padding: 0 16px; }
-    .pred-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-    }
-    .pred-item.warn  { border-color: var(--warn); }
-    .pred-item.ok    { border-color: var(--ok); }
-    .pred-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
-    .pred-main { flex: 1; }
-    .pred-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-    .pred-sub   { font-size: 11px; color: var(--muted); line-height: 1.4; }
-    .pred-eta {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--warn);
-      margin-top: 4px;
-    }
-    .pred-eta.ok { color: var(--ok); }
-
-    /* ── HISTORIAL ── */
-    .hist-item {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .hist-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); margin-top: 5px; flex-shrink: 0;
-    }
-    .hist-dot.mant { background: var(--warn); }
-    .hist-dot.alert { background: var(--danger); }
-    .hist-text { font-size: 13px; line-height: 1.4; }
-    .hist-date { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-    /* ── FOOTER TIMESTAMP ── */
-    .live-footer {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 6px 16px calc(6px + var(--safe-bot));
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--muted);
-    }
-    .live-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--ok);
-      box-shadow: 0 0 5px var(--ok);
-      animation: pulse 1.5s infinite;
-    }
-  </style>
+/* ── DEMO RIBBON ─────────────────────────────── */
+.demo-tag{
+  position:fixed;top:calc(var(--sat) + 4px);right:4px;z-index:99;
+  background:var(--accent2);color:#fff;font-family:var(--mono);
+  font-size:8px;letter-spacing:.1em;padding:3px 7px;border-radius:5px;
+  opacity:.7;pointer-events:none;
+}
+</style>
 </head>
 <body>
 <div id="app">
 
-  <!-- HEADER -->
-  <header>
-    <div class="header-top">
-      <div>
-        <div class="motor-id">AAS · #MTR-4712 · Línea 3</div>
-        <div class="motor-name">WEG W22 · 75 kW</div>
-      </div>
-      <div class="health-badge" id="healthBadge">
-        <div class="health-dot" id="healthDot"></div>
-        <span id="healthText">NORMAL</span>
-      </div>
-    </div>
-  </header>
+<div class="demo-tag">DEMO</div>
 
-  <!-- MÉTRICAS RÁPIDAS -->
-  <div class="metrics-bar" id="metricsBar">
-    <div class="metric-pill">
-      <div class="metric-label">Temp</div>
-      <div class="metric-value ok" id="mTemp">--</div>
-      <div class="metric-unit">°C</div>
+<!-- HEADER -->
+<header>
+  <div class="hrow">
+    <div>
+      <div class="mid">AAS · #MTR-4712 · LÍNEA 3 · PLANTA MTY</div>
+      <div class="mname">WEG W22 · 75 kW</div>
     </div>
-    <div class="metric-pill">
-      <div class="metric-label">RMS vib</div>
-      <div class="metric-value" id="mRms">--</div>
-      <div class="metric-unit">mm/s</div>
+    <div class="badge" id="badge"><div class="dot ok" id="bdot"></div><span id="btxt">NORMAL</span></div>
+  </div>
+</header>
+
+<!-- PILLS -->
+<div class="pills">
+  <div class="pill" id="pl-temp">
+    <div class="plbl">Temp</div>
+    <div class="pval c-ok" id="pv-temp">--</div>
+    <div class="punit">°C</div>
+  </div>
+  <div class="pill" id="pl-rms">
+    <div class="plbl">RMS vib</div>
+    <div class="pval c-acc" id="pv-rms">--</div>
+    <div class="punit">mm/s</div>
+  </div>
+  <div class="pill" id="pl-curr">
+    <div class="plbl">Corriente</div>
+    <div class="pval c-acc" id="pv-curr">--</div>
+    <div class="punit">A</div>
+  </div>
+  <div class="pill" id="pl-on">
+    <div class="plbl">Estado</div>
+    <div class="pval c-ok" id="pv-on">--</div>
+    <div class="punit">&nbsp;</div>
+  </div>
+  <div class="pill" id="pl-hlth">
+    <div class="plbl">Salud</div>
+    <div class="pval c-ok" id="pv-hlth">--</div>
+    <div class="punit">%</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tb on" onclick="go('live',this)">EN VIVO</button>
+  <button class="tb" onclick="go('vibra',this)">VIBRACIÓN</button>
+  <button class="tb" onclick="go('pred',this)">PREDICCIÓN</button>
+  <button class="tb" onclick="go('aas',this)">FICHA AAS</button>
+  <button class="tb" onclick="go('hist',this)">HISTORIAL</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- EN VIVO -->
+  <div class="panel on" id="p-live">
+    <div class="card">
+      <div class="clbl">Temperatura bobinado <span>últimos 30 min</span></div>
+      <canvas id="cTemp" height="140"></canvas>
     </div>
-    <div class="metric-pill">
-      <div class="metric-label">Corriente</div>
-      <div class="metric-value" id="mCurr">--</div>
-      <div class="metric-unit">A</div>
-    </div>
-    <div class="metric-pill">
-      <div class="metric-label">Estado</div>
-      <div class="metric-value ok" id="mOnOff">--</div>
-      <div class="metric-unit">·</div>
-    </div>
-    <div class="metric-pill">
-      <div class="metric-label">Salud</div>
-      <div class="metric-value ok" id="mHealth">--</div>
-      <div class="metric-unit">%</div>
+    <div class="card">
+      <div class="clbl">Corriente RMS <span>últimos 30 min</span></div>
+      <canvas id="cCurr" height="140"></canvas>
     </div>
   </div>
 
-  <!-- TABS -->
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="showTab('live')">EN VIVO</button>
-    <button class="tab-btn" onclick="showTab('vibra')">VIBRACIÓN</button>
-    <button class="tab-btn" onclick="showTab('pred')">PREDICCIÓN</button>
-    <button class="tab-btn" onclick="showTab('aas')">FICHA AAS</button>
-    <button class="tab-btn" onclick="showTab('hist')">HISTORIAL</button>
+  <!-- VIBRACIÓN -->
+  <div class="panel" id="p-vibra">
+    <div class="card">
+      <div class="clbl">RMS Vibración <span>últimas 2 h</span></div>
+      <canvas id="cRms" height="140"></canvas>
+    </div>
+    <div class="card">
+      <div class="clbl">Espectro FFT <span>instante actual</span></div>
+      <canvas id="cFft" height="180"></canvas>
+    </div>
   </div>
 
-  <!-- CONTENIDO TABS -->
-  <div class="tab-content">
-
-    <!-- TAB: EN VIVO (iframes Grafana) -->
-    <div class="tab-panel active" id="tab-live">
-      <div class="panel-block">
-        <div class="panel-label">Temperatura — últimos 30 min</div>
-        <!-- REEMPLAZÁ esta URL por tu panel de Grafana: Compartir → Embed -->
-        <iframe class="grafana-panel" id="iframeTemp"
-          src="about:blank"
-          data-src="TU_URL_GRAFANA_TEMPERATURA"
-          title="Temperatura en tiempo real">
-        </iframe>
-      </div>
-      <div class="panel-block">
-        <div class="panel-label">Corriente RMS — últimos 30 min</div>
-        <iframe class="grafana-panel" id="iframeCurr"
-          src="about:blank"
-          data-src="TU_URL_GRAFANA_CORRIENTE"
-          title="Corriente RMS">
-        </iframe>
-      </div>
+  <!-- PREDICCIÓN -->
+  <div class="panel" id="p-pred">
+    <div class="rul-wrap">
+      <svg viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#1e2a3f" stroke-width="11"/>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="url(#rg)" stroke-width="11"
+          stroke-dasharray="314" id="rulArc" stroke-dashoffset="72"
+          stroke-linecap="round" transform="rotate(-90 60 60)"/>
+        <defs>
+          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#00e5ff"/>
+            <stop offset="100%" stop-color="#7b61ff"/>
+          </linearGradient>
+        </defs>
+        <text x="60" y="53" text-anchor="middle" fill="#dde6f0"
+          font-family="'JetBrains Mono',monospace" font-size="22" font-weight="800">77%</text>
+        <text x="60" y="70" text-anchor="middle" fill="#5a7190"
+          font-family="'JetBrains Mono',monospace" font-size="8">SALUD</text>
+      </svg>
+      <div class="rul-sub">Vida útil restante estimada: <strong>~310 días</strong></div>
     </div>
 
-    <!-- TAB: VIBRACIÓN (FFT + RMS) -->
-    <div class="tab-panel" id="tab-vibra">
-      <div class="panel-block">
-        <div class="panel-label">RMS Vibración — tendencia</div>
-        <iframe class="grafana-panel" id="iframeRms"
-          src="about:blank"
-          data-src="https://g-7cfaed7b38.grafana-workspace.us-east-1.amazonaws.com/d/afon2x0wbvw8wc/motor-4-0?orgId=1&from=1781081254290&to=1781102854290&viewPanel=1"
-          title="RMS vibración">
-        </iframe>
+    <div class="pred">
+      <div class="pitem d">
+        <div class="pico">⚡</div>
+        <div class="pmain">
+          <div class="ptit">Rodamiento delantero (DE)</div>
+          <div class="psub">Frecuencia BPFO a 87 Hz detectada en FFT. Amplitud +34% sobre línea base. Tendencia ascendente 7 días consecutivos.</div>
+          <div class="peta d">⏱ Intervención recomendada en ~18 días</div>
+        </div>
       </div>
-      <div class="panel-block">
-        <div class="panel-label">FFT — espectro de frecuencias</div>
-        <iframe class="grafana-panel" id="iframeFft"
-          src="about:blank"
-          data-src="TU_URL_GRAFANA_FFT"
-          title="FFT espectro">
-        </iframe>
+      <div class="pitem w">
+        <div class="pico">🌡️</div>
+        <div class="pmain">
+          <div class="ptit">Temperatura de bobinado</div>
+          <div class="psub">Promedio últimas 72 h: 74.2°C. Tendencia leve al alza (+1.8°C/semana). Monitorear ventilación.</div>
+          <div class="peta w">⚠ Revisar en próximo mantenimiento</div>
+        </div>
+      </div>
+      <div class="pitem ok">
+        <div class="pico">⚙️</div>
+        <div class="pmain">
+          <div class="ptit">Aislamiento eléctrico</div>
+          <div class="psub">Corriente sin armónicos anómalos. THD 3.2%, dentro del límite IEC 60034-1.</div>
+          <div class="peta ok">✓ Sin acción requerida</div>
+        </div>
+      </div>
+      <div class="pitem ok">
+        <div class="pico">🔩</div>
+        <div class="pmain">
+          <div class="ptit">Desbalanceo mecánico</div>
+          <div class="psub">Componente 1× = 0.8 mm/s. Muy por debajo del límite ISO 10816 clase III (7.1 mm/s).</div>
+          <div class="peta ok">✓ Sin acción requerida</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px">
+        <div class="clbl">Tendencia de salud <span>últimos 90 días</span></div>
+        <canvas id="cHealth" height="140"></canvas>
       </div>
     </div>
-
-    <!-- TAB: PREDICCIÓN / RUL -->
-    <div class="tab-panel" id="tab-pred">
-      <div class="rul-ring-wrap">
-        <svg viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="50" fill="none" stroke="#1c2330" stroke-width="12"/>
-          <circle cx="60" cy="60" r="50" fill="none" stroke="#00d4ff" stroke-width="12"
-            stroke-dasharray="283" stroke-dashoffset="56"
-            stroke-linecap="round" transform="rotate(-90 60 60)"
-            id="rulArc"/>
-          <text x="60" y="55" text-anchor="middle" fill="#e8edf4"
-            font-family="'JetBrains Mono',monospace" font-size="22" font-weight="700"
-            id="rulPct">80%</text>
-          <text x="60" y="73" text-anchor="middle" fill="#6b7a8d"
-            font-family="'JetBrains Mono',monospace" font-size="9">SALUD</text>
-        </svg>
-        <div class="rul-label">Vida útil restante estimada: <strong id="rulDays" style="color:var(--accent)">~340 días</strong></div>
-      </div>
-
-      <div class="pred-list">
-        <div class="pred-item warn">
-          <div class="pred-icon">⚡</div>
-          <div class="pred-main">
-            <div class="pred-title">Rodamiento delantero</div>
-            <div class="pred-sub">Frecuencia BPFO detectada en FFT. Tendencia ascendente en los últimos 7 días.</div>
-            <div class="pred-eta">⏱ Intervención recomendada en ~45 días</div>
-          </div>
-        </div>
-        <div class="pred-item ok">
-          <div class="pred-icon">🌡️</div>
-          <div class="pred-main">
-            <div class="pred-title">Temperatura de bobinado</div>
-            <div class="pred-sub">Dentro del rango nominal. Sin tendencia de degradación.</div>
-            <div class="pred-eta ok">✓ Sin acción requerida</div>
-          </div>
-        </div>
-        <div class="pred-item ok">
-          <div class="pred-icon">⚙️</div>
-          <div class="pred-main">
-            <div class="pred-title">Aislamiento eléctrico</div>
-            <div class="pred-sub">Corriente sin armónicos anómalos. Eficiencia estable.</div>
-            <div class="pred-eta ok">✓ Sin acción requerida</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-block">
-        <div class="panel-label">Tendencia de salud — 90 días</div>
-        <iframe class="grafana-panel" id="iframeRul"
-          src="about:blank"
-          data-src="TU_URL_GRAFANA_SALUD"
-          title="Tendencia salud">
-        </iframe>
-      </div>
-    </div>
-
-    <!-- TAB: FICHA AAS TIPO -->
-    <div class="tab-panel" id="tab-aas">
-      <div class="ficha-grid">
-        <div class="ficha-item">
-          <div class="ficha-key">Fabricante</div>
-          <div class="ficha-val">WEG</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Modelo</div>
-          <div class="ficha-val accent">W22 IE3</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Potencia</div>
-          <div class="ficha-val">75 kW</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Velocidad</div>
-          <div class="ficha-val">1780 rpm</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Tensión</div>
-          <div class="ficha-val">380/660 V</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Clase efic.</div>
-          <div class="ficha-val accent">IE3</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Protección</div>
-          <div class="ficha-val">IP55</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Año fabric.</div>
-          <div class="ficha-val">2021</div>
-        </div>
-        <div class="ficha-item" style="grid-column:1/-1">
-          <div class="ficha-key">Horas acumuladas (instancia)</div>
-          <div class="ficha-val accent" id="horasAcc">14 280 h</div>
-        </div>
-      </div>
-
-      <div class="mat-bar">
-        <div class="mat-title">Composición de materiales — AAS Tipo</div>
-        <div class="mat-row">
-          <div class="mat-name">Cobre</div>
-          <div class="mat-track"><div class="mat-fill cu" style="width:65%"></div></div>
-          <div class="mat-kg">12.4 kg</div>
-        </div>
-        <div class="mat-row">
-          <div class="mat-name">Acero eléct.</div>
-          <div class="mat-track"><div class="mat-fill fe" style="width:100%"></div></div>
-          <div class="mat-kg">48.0 kg</div>
-        </div>
-        <div class="mat-row">
-          <div class="mat-name">Aluminio</div>
-          <div class="mat-track"><div class="mat-fill al" style="width:32%"></div></div>
-          <div class="mat-kg">6.2 kg</div>
-        </div>
-      </div>
-
-      <div class="ficha-grid">
-        <div class="ficha-item" style="grid-column:1/-1">
-          <div class="ficha-key">Huella de carbono fabricación</div>
-          <div class="ficha-val">284 kg CO₂eq</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Eficiencia nominal</div>
-          <div class="ficha-val accent">94.1 %</div>
-        </div>
-        <div class="ficha-item">
-          <div class="ficha-key">Eficiencia real (campo)</div>
-          <div class="ficha-val" id="efReal">91.8 %</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB: HISTORIAL -->
-    <div class="tab-panel" id="tab-hist">
-      <div class="hist-item">
-        <div class="hist-dot"></div>
-        <div>
-          <div class="hist-text">Conexión AAS establecida · Motor incorporado a plataforma 4.0</div>
-          <div class="hist-date">2024-01-15 · 08:30</div>
-        </div>
-      </div>
-      <div class="hist-item">
-        <div class="hist-dot mant"></div>
-        <div>
-          <div class="hist-text">Mantenimiento preventivo · Cambio de rodamiento trasero · Técnico: M. García</div>
-          <div class="hist-date">2024-03-22 · 14:00</div>
-        </div>
-      </div>
-      <div class="hist-item">
-        <div class="hist-dot alert"></div>
-        <div>
-          <div class="hist-text">Alerta temperatura · Pico 92°C por 4 min · Causa: ventilación obstruida</div>
-          <div class="hist-date">2024-06-08 · 03:17</div>
-        </div>
-      </div>
-      <div class="hist-item">
-        <div class="hist-dot mant"></div>
-        <div>
-          <div class="hist-text">Mantenimiento correctivo · Limpieza de ventilación · Temperatura normalizada</div>
-          <div class="hist-date">2024-06-08 · 09:00</div>
-        </div>
-      </div>
-      <div class="hist-item">
-        <div class="hist-dot"></div>
-        <div>
-          <div class="hist-text">Actualización firmware sensor ESP32 · v2.3.1</div>
-          <div class="hist-date">2025-01-10 · 11:00</div>
-        </div>
-      </div>
-      <div class="hist-item">
-        <div class="hist-dot mant"></div>
-        <div>
-          <div class="hist-text">Alerta predictiva BPFO · Rodamiento delantero · Mantenimiento programado</div>
-          <div class="hist-date">2025-06-01 · 00:00</div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /tab-content -->
-
-  <!-- FOOTER LIVE -->
-  <div class="live-footer">
-    <div class="live-dot"></div>
-    <span>En vivo · Actualizado <span id="lastUpdate">--:--:--</span></span>
   </div>
+
+  <!-- FICHA AAS -->
+  <div class="panel" id="p-aas">
+    <div class="fgrid">
+      <div class="fi"><div class="fk">Fabricante</div><div class="fv">WEG</div></div>
+      <div class="fi"><div class="fk">Modelo</div><div class="fv a">W22 IE3</div></div>
+      <div class="fi"><div class="fk">Potencia</div><div class="fv">75 kW</div></div>
+      <div class="fi"><div class="fk">Velocidad</div><div class="fv">1780 rpm</div></div>
+      <div class="fi"><div class="fk">Tensión</div><div class="fv">380/660 V</div></div>
+      <div class="fi"><div class="fk">Clase efic.</div><div class="fv a">IE3</div></div>
+      <div class="fi"><div class="fk">Protección</div><div class="fv">IP55</div></div>
+      <div class="fi"><div class="fk">Fabricación</div><div class="fv">2021</div></div>
+      <div class="fi" style="grid-column:1/-1">
+        <div class="fk">Horas acumuladas (instancia)</div>
+        <div class="fv a">14 280 h</div>
+      </div>
+      <div class="fi"><div class="fk">Eficiencia nominal</div><div class="fv a">94.1 %</div></div>
+      <div class="fi"><div class="fk">Eficiencia real campo</div><div class="fv">91.4 %</div></div>
+      <div class="fi" style="grid-column:1/-1">
+        <div class="fk">Huella CO₂ fabricación</div>
+        <div class="fv">284 kg CO₂eq</div>
+      </div>
+    </div>
+
+    <div class="mbar">
+      <div class="mbartit">Composición de materiales · AAS Tipo</div>
+      <div class="mrow">
+        <div class="mnom">Cobre</div>
+        <div class="mtrack"><div class="mfill cu" id="mcu" style="width:0%"></div></div>
+        <div class="mkg">12.4 kg</div>
+      </div>
+      <div class="mrow">
+        <div class="mnom">Acero eléct.</div>
+        <div class="mtrack"><div class="mfill fe" id="mfe" style="width:0%"></div></div>
+        <div class="mkg">48.0 kg</div>
+      </div>
+      <div class="mrow">
+        <div class="mnom">Aluminio</div>
+        <div class="mtrack"><div class="mfill al" id="mal" style="width:0%"></div></div>
+        <div class="mkg">6.2 kg</div>
+      </div>
+    </div>
+
+    <div class="fgrid">
+      <div class="fi" style="grid-column:1/-1">
+        <div class="fk">Submodelos AAS activos</div>
+        <div class="fv" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.7">
+          NameplateV3 · TechnicalData · Materials · Maintenance · EnergyConsumption · HealthMonitoring · CarbonFootprint
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="panel" id="p-hist">
+    <div class="hitem">
+      <div class="hdot"></div>
+      <div><div class="htxt">Motor incorporado a plataforma AAS · Gemelo digital inicializado</div><div class="hdt">2024-01-15 · 08:30</div></div>
+    </div>
+    <div class="hitem">
+      <div class="hdot m"></div>
+      <div><div class="htxt">Mantto. preventivo · Cambio rodamiento trasero NDE · Técnico: M. García</div><div class="hdt">2024-03-22 · 14:00</div></div>
+    </div>
+    <div class="hitem">
+      <div class="hdot a"></div>
+      <div><div class="htxt">Alerta temperatura · Pico 91°C por 4 min · Causa: ventilación obstruida</div><div class="hdt">2024-06-08 · 03:17</div></div>
+    </div>
+    <div class="hitem">
+      <div class="hdot m"></div>
+      <div><div class="htxt">Mantto. correctivo · Limpieza ventilación · Temperatura normalizada a 68°C</div><div class="hdt">2024-06-08 · 09:00</div></div>
+    </div>
+    <div class="hitem">
+      <div class="hdot"></div>
+      <div><div class="htxt">Calibración sensor vibración · Línea base actualizada · ESP32 fw v2.3.1</div><div class="hdt">2025-01-10 · 11:00</div></div>
+    </div>
+    <div class="hitem">
+      <div class="hdot a"></div>
+      <div><div class="htxt">Alerta predictiva BPFO · Rodamiento DE · Mantenimiento agendado</div><div class="hdt">2025-06-01 · 00:00</div></div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<footer>
+  <div class="ldot"></div>
+  <span>Actualizado <span id="ts">--:--:--</span> · Demo Mode</span>
+</footer>
 
 </div><!-- /app -->
 
 <script>
-  // ── TABS ──
-  function showTab(id) {
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
-    event.currentTarget.classList.add('active');
-    // Lazy load iframes al primer acceso
-    lazyLoadIframes(id);
+/* ════════════════════════════════════════════════
+   TABS
+════════════════════════════════════════════════ */
+function go(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  document.getElementById('p-' + id).classList.add('on');
+  btn.classList.add('on');
+  if (id === 'aas') animateBars();
+  if (id === 'pred') drawHealth();
+}
+
+/* ════════════════════════════════════════════════
+   SIMULACIÓN DE DATOS
+════════════════════════════════════════════════ */
+let TEMP = 70, RMS = 2.4, CURR = 140, ON = true, HEALTH = 77;
+
+// Buffers para series temporales (últimos 40 puntos)
+const BUF = 40;
+const tempBuf  = Array.from({length:BUF}, (_,i) => 68 + Math.sin(i/5)*3 + Math.random()*2);
+const currBuf  = Array.from({length:BUF}, (_,i) => 138 + Math.sin(i/4)*5 + Math.random()*3);
+const rmsBuf   = Array.from({length:BUF}, (_,i) => {
+  const trend = i > 25 ? (i-25)*0.04 : 0; // simular degradación
+  return 2.0 + trend + Math.random()*0.3;
+});
+
+function pushBuf(buf, val) { buf.push(val); if(buf.length > BUF) buf.shift(); }
+
+function tick() {
+  // Evolución gradual con algo de ruido
+  TEMP  += (Math.random() - 0.47) * 0.5;
+  TEMP   = Math.max(64, Math.min(85, TEMP));
+  CURR  += (Math.random() - 0.48) * 1.5;
+  CURR   = Math.max(130, Math.min(152, CURR));
+  RMS   += (Math.random() - 0.45) * 0.06;
+  RMS    = Math.max(1.8, Math.min(4.2, RMS));
+
+  pushBuf(tempBuf, TEMP);
+  pushBuf(currBuf, CURR);
+  pushBuf(rmsBuf, RMS);
+
+  updatePills();
+  drawAll();
+  document.getElementById('ts').textContent = new Date().toLocaleTimeString('es');
+}
+
+function updatePills() {
+  // Temperatura
+  const tc = TEMP > 80 ? 'c-d' : TEMP > 74 ? 'c-w' : 'c-ok';
+  setPill('temp', TEMP.toFixed(1), tc, TEMP > 74);
+
+  // RMS
+  const rc = RMS > 3.2 ? 'c-d' : RMS > 2.8 ? 'c-w' : 'c-acc';
+  setPill('rms', RMS.toFixed(2), rc, RMS > 2.8);
+
+  // Corriente
+  setPill('curr', CURR.toFixed(1), 'c-acc', false);
+
+  // ON/OFF
+  const oc = ON ? 'c-ok' : 'c-d';
+  setPill('on', ON ? 'ON' : 'OFF', oc, false);
+  document.getElementById('pl-on').className = 'pill ' + (ON ? '' : 'crit');
+
+  // Salud
+  const hc = HEALTH > 70 ? 'c-ok' : HEALTH > 40 ? 'c-w' : 'c-d';
+  setPill('hlth', HEALTH + '%', hc, HEALTH < 70);
+
+  // Badge global
+  const lvl = HEALTH > 70 ? 'ok' : HEALTH > 40 ? 'warn' : 'danger';
+  document.getElementById('bdot').className = 'dot ' + lvl;
+  document.getElementById('btxt').textContent =
+    lvl==='ok' ? 'NORMAL' : lvl==='warn' ? 'ATENCIÓN' : 'CRÍTICO';
+}
+
+function setPill(key, val, cls, hi) {
+  const el = document.getElementById('pv-'+key);
+  el.textContent = val;
+  el.className = 'pval ' + cls;
+  document.getElementById('pl-'+key).className = 'pill' + (hi ? ' hi' : '');
+}
+
+/* ════════════════════════════════════════════════
+   CANVAS UTILITIES
+════════════════════════════════════════════════ */
+function resize(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return {ctx, w: rect.width, h: rect.height};
+}
+
+function lineChart(canvas, data, color, yMin, yMax, unit, threshWarn, threshDanger) {
+  const {ctx, w, h} = resize(canvas);
+  const PAD = {t:8, b:24, l:36, r:10};
+  const cw = w - PAD.l - PAD.r;
+  const ch = h - PAD.t - PAD.b;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid
+  ctx.strokeStyle = '#1e2a3f';
+  ctx.lineWidth = 1;
+  const steps = 4;
+  for (let i = 0; i <= steps; i++) {
+    const y = PAD.t + ch * (i / steps);
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + cw, y); ctx.stroke();
+    const val = yMax - (yMax - yMin) * i / steps;
+    ctx.fillStyle = '#3a4f6a';
+    ctx.font = `9px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(0), PAD.l - 4, y + 3);
   }
 
-  function lazyLoadIframes(tabId) {
-    const panel = document.getElementById('tab-' + tabId);
-    if (!panel) return;
-    panel.querySelectorAll('iframe[data-src]').forEach(iframe => {
-      if (iframe.src === 'about:blank' || !iframe.src) {
-        const url = iframe.getAttribute('data-src');
-        if (url && !url.startsWith('TU_URL')) {
-          iframe.src = url;
-        } else {
-          // Placeholder visual para demo sin Grafana conectado
-          iframe.srcdoc = placeholderChart(iframe.title);
-        }
-      }
-    });
+  // Threshold lines
+  if (threshWarn) {
+    const ty = PAD.t + ch * (1 - (threshWarn - yMin) / (yMax - yMin));
+    ctx.strokeStyle = 'rgba(255,170,0,.4)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.l, ty); ctx.lineTo(PAD.l + cw, ty); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (threshDanger) {
+    const dy = PAD.t + ch * (1 - (threshDanger - yMin) / (yMax - yMin));
+    ctx.strokeStyle = 'rgba(255,71,87,.4)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.l, dy); ctx.lineTo(PAD.l + cw, dy); ctx.stroke();
+    ctx.setLineDash([]);
   }
 
-  function placeholderChart(title) {
-    return `<!DOCTYPE html><html><body style="margin:0;background:#131820;display:flex;align-items:center;justify-content:center;height:100%;font-family:monospace;color:#2a3545;font-size:13px;flex-direction:column;gap:8px">
-      <div style="color:#00d4ff;font-size:11px;letter-spacing:.1em;text-transform:uppercase">${title}</div>
-      <div style="color:#2a3545">Conectar panel Grafana aquí</div>
-      <div style="color:#1c2330;font-size:10px">data-src="TU_URL_GRAFANA_..."</div>
-    </body></html>`;
+  // Area gradient
+  const grad = ctx.createLinearGradient(0, PAD.t, 0, PAD.t + ch);
+  grad.addColorStop(0, color + '33');
+  grad.addColorStop(1, color + '00');
+
+  // Path
+  const pts = data.map((v, i) => ({
+    x: PAD.l + cw * i / (data.length - 1),
+    y: PAD.t + ch * (1 - Math.max(0, Math.min(1, (v - yMin) / (yMax - yMin))))
+  }));
+
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, PAD.t + ch);
+  ctx.lineTo(pts[0].x, PAD.t + ch);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Last value dot
+  const last = pts[pts.length-1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // X labels
+  ctx.fillStyle = '#3a4f6a';
+  ctx.textAlign = 'center';
+  ctx.font = `8px monospace`;
+  ['30m','20m','10m','ahora'].forEach((lbl, i) => {
+    const x = PAD.l + cw * (i / 3);
+    ctx.fillText(lbl, x, h - 6);
+  });
+}
+
+/* ── FFT ── */
+let fftPhase = 0;
+function drawFft() {
+  const canvas = document.getElementById('cFft');
+  const {ctx, w, h} = resize(canvas);
+  const PAD = {t:10, b:28, l:36, r:10};
+  const cw = w - PAD.l - PAD.r;
+  const ch = h - PAD.t - PAD.b;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Frecuencias de interés en Hz
+  const freqs = [25,50,75,100,125,150,175,200,225,250,275,300];
+  // Amplitudes base — con BPFO a 87Hz (entre bin 75 y 100)
+  const baseAmps = [0.12,0.85,0.10,0.18,0.08,0.22,0.06,0.10,0.05,0.09,0.04,0.07];
+  // BPFO spike entre freqs 75 y 100 Hz
+  const bpfoAmps = [0.0, 0.0, 0.65, 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+
+  fftPhase += 0.04;
+  const bw = (cw / freqs.length) * 0.65;
+
+  // Grid & labels eje X
+  ctx.fillStyle = '#3a4f6a';
+  ctx.font = '8px monospace';
+  ctx.textAlign = 'center';
+
+  freqs.forEach((f, i) => {
+    const x = PAD.l + cw * (i + 0.5) / freqs.length;
+    if (i % 2 === 0) ctx.fillText(f + 'Hz', x, h - 6);
+  });
+
+  // Eje Y
+  [0,0.25,0.5,0.75,1].forEach(frac => {
+    const y = PAD.t + ch * (1 - frac);
+    ctx.strokeStyle = '#1e2a3f';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + cw, y); ctx.stroke();
+    if (frac > 0) {
+      ctx.fillStyle = '#3a4f6a';
+      ctx.textAlign = 'right';
+      ctx.fillText((frac).toFixed(2), PAD.l - 4, y + 3);
+    }
+  });
+
+  // Barras
+  freqs.forEach((f, i) => {
+    const noise = (Math.sin(fftPhase + i * 1.3) * 0.03);
+    const bpfo  = bpfoAmps[i] * (0.9 + Math.sin(fftPhase * 0.7 + i) * 0.1);
+    const amp   = Math.min(1, baseAmps[i] + bpfo + noise);
+    const barH  = amp * ch;
+    const x     = PAD.l + cw * (i + 0.5) / freqs.length - bw / 2;
+    const y     = PAD.t + ch - barH;
+
+    // Color: rojo si es BPFO spike
+    const isBpfo = bpfoAmps[i] > 0.3;
+    const grad = ctx.createLinearGradient(0, y, 0, PAD.t + ch);
+    if (isBpfo) {
+      grad.addColorStop(0, '#ff4757');
+      grad.addColorStop(1, '#ff475733');
+    } else if (f === 50) {
+      grad.addColorStop(0, '#00e5ff');
+      grad.addColorStop(1, '#00e5ff33');
+    } else {
+      grad.addColorStop(0, '#7b61ff');
+      grad.addColorStop(1, '#7b61ff22');
+    }
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, bw, barH, [3, 3, 0, 0]);
+    ctx.fill();
+  });
+
+  // Anotación BPFO
+  const bpfoX = PAD.l + cw * (2.5 + 0.5) / freqs.length;
+  ctx.fillStyle = 'rgba(255,71,87,.85)';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('BPFO 87Hz', bpfoX + cw/freqs.length, PAD.t + 8);
+}
+
+/* ── HEALTH TREND ── */
+function drawHealth() {
+  const canvas = document.getElementById('cHealth');
+  if (!canvas) return;
+  const healthBuf = Array.from({length:90}, (_,i) => {
+    const base = 92 - i * 0.15;
+    const drop = i > 70 ? -(i-70)*0.18 : 0;
+    return Math.max(50, base + drop + (Math.random()-0.5)*1.5);
+  });
+  lineChart(canvas, healthBuf, '#00d68f', 50, 100, '%', 70, 50);
+}
+
+/* ── DRAW ALL VISIBLE ── */
+function drawAll() {
+  const live  = document.getElementById('p-live').classList.contains('on');
+  const vibra = document.getElementById('p-vibra').classList.contains('on');
+  const pred  = document.getElementById('p-pred').classList.contains('on');
+
+  if (live) {
+    lineChart(document.getElementById('cTemp'), tempBuf, '#ff6b6b', 60, 90, '°C', 75, 83);
+    lineChart(document.getElementById('cCurr'), currBuf, '#00e5ff', 120, 160, 'A', 148, 156);
   }
-
-  // Cargar iframes del tab inicial
-  lazyLoadIframes('live');
-
-  // ── SIMULACIÓN DE DATOS EN TIEMPO REAL (reemplazar con fetch a API) ──
-  function updateMetrics() {
-    const temp    = (68 + Math.random() * 6).toFixed(1);
-    const rms     = (2.1 + Math.random() * 1.2).toFixed(2);
-    const curr    = (138 + Math.random() * 8).toFixed(1);
-    const on      = Math.random() > 0.05;
-    const health  = 80;
-
-    set('mTemp',   temp,  tempColor(temp));
-    set('mRms',    rms,   rmsColor(rms));
-    set('mCurr',   curr,  'accent');
-    set('mOnOff',  on ? 'ON' : 'OFF', on ? 'ok' : 'danger');
-    set('mHealth', health + '%', healthColor(health));
-
-    // badge global
-    const dot  = document.getElementById('healthDot');
-    const txt  = document.getElementById('healthText');
-    const lvl  = health > 70 ? 'ok' : health > 40 ? 'warn' : 'danger';
-    dot.className = 'health-dot ' + (lvl === 'ok' ? '' : lvl);
-    txt.textContent = lvl === 'ok' ? 'NORMAL' : lvl === 'warn' ? 'ATENCIÓN' : 'CRÍTICO';
-
-    // timestamp
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('es');
+  if (vibra) {
+    lineChart(document.getElementById('cRms'), rmsBuf, '#7b61ff', 1.5, 5.0, 'mm/s', 3.0, 4.0);
+    drawFft();
   }
+  if (pred) drawHealth();
+}
 
-  function set(id, val, cls) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = val;
-    el.className = 'metric-value ' + (cls || '');
-  }
+/* ── MATERIAL BARS ANIMATION ── */
+function animateBars() {
+  setTimeout(() => {
+    document.getElementById('mcu').style.width = '65%';
+    document.getElementById('mfe').style.width = '100%';
+    document.getElementById('mal').style.width = '32%';
+  }, 80);
+}
 
-  function tempColor(t)  { return t > 80 ? 'danger' : t > 72 ? 'warn' : 'ok'; }
-  function rmsColor(r)   { return r > 3.0 ? 'danger' : r > 2.5 ? 'warn' : ''; }
-  function healthColor(h){ return h > 70 ? 'ok' : h > 40 ? 'warn' : 'danger'; }
+/* ── INIT ── */
+updatePills();
+drawAll();
+drawFft();
 
-  updateMetrics();
-  setInterval(updateMetrics, 3000);
+// FFT siempre animado en su tab
+setInterval(() => {
+  if (document.getElementById('p-vibra').classList.contains('on')) drawFft();
+}, 80);
 
-  // ── SERVICE WORKER PARA PWA ──
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+// Datos cada 2s
+setInterval(tick, 2000);
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
