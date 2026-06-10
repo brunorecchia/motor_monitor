@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0a0d12"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Motor 4.0"/>
+  <title>Motor 4.0</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
+
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --bg:        #0a0d12;
+      --surface:   #131820;
+      --surface2:  #1c2330;
+      --border:    #2a3545;
+      --accent:    #00d4ff;
+      --accent2:   #7c3aed;
+      --ok:        #22c55e;
+      --warn:      #f59e0b;
+      --danger:    #ef4444;
+      --text:      #e8edf4;
+      --muted:     #6b7a8d;
+      --font-mono: 'JetBrains Mono', 'Fira Mono', monospace;
+      --font-ui:   'Inter', system-ui, sans-serif;
+      --safe-top:  env(safe-area-inset-top, 0px);
+      --safe-bot:  env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── LAYOUT SHELL ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding-top: var(--safe-top);
+    }
+
+    /* ── HEADER ── */
+    header {
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px 10px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .motor-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .motor-name {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .health-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .health-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 6px var(--ok);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    .health-dot.warn   { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+    .health-dot.danger { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+    /* ── QUICK METRICS BAR ── */
+    .metrics-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 10px 16px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+    .metrics-bar::-webkit-scrollbar { display: none; }
+
+    .metric-pill {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 7px 14px;
+      min-width: 72px;
+      transition: border-color .2s;
+    }
+    .metric-pill.alert { border-color: var(--warn); }
+    .metric-label {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .metric-value.ok     { color: var(--ok); }
+    .metric-value.warn   { color: var(--warn); }
+    .metric-value.danger { color: var(--danger); }
+    .metric-unit {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── TABS ── */
+    .tab-bar {
+      display: flex;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 10px 18px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── TAB CONTENT ── */
+    .tab-content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .tab-panel {
+      display: none;
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding-bottom: calc(16px + var(--safe-bot));
+    }
+    .tab-panel.active { display: block; }
+
+    /* ── GRAFANA IFRAME PANEL ── */
+    .grafana-panel {
+      width: 100%;
+      height: 320px;
+      border: none;
+      background: var(--surface);
+      border-radius: 0;
+    }
+    .panel-block {
+      margin: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface2);
+    }
+    .panel-label {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 14px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── AAS FICHA ── */
+    .ficha-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 14px 16px;
+    }
+    .ficha-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .ficha-key {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .ficha-val {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ficha-val.accent { color: var(--accent); }
+
+    .mat-bar {
+      margin: 0 16px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .mat-title {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .mat-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .mat-name { font-size: 12px; color: var(--muted); width: 80px; flex-shrink: 0; }
+    .mat-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .mat-fill  { height: 100%; border-radius: 3px; }
+    .mat-fill.cu { background: #f59e0b; }
+    .mat-fill.fe { background: #6b7a8d; }
+    .mat-fill.al { background: #60a5fa; }
+    .mat-kg { font-family: var(--font-mono); font-size: 11px; color: var(--text); width: 42px; text-align: right; }
+
+    /* ── RUL / PREDICCIONES ── */
+    .rul-ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 10px;
+    }
+    .rul-ring-wrap svg { max-width: 180px; }
+    .rul-label {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+    }
+
+    .pred-list { padding: 0 16px; }
+    .pred-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .pred-item.warn  { border-color: var(--warn); }
+    .pred-item.ok    { border-color: var(--ok); }
+    .pred-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .pred-main { flex: 1; }
+    .pred-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+    .pred-sub   { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .pred-eta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--warn);
+      margin-top: 4px;
+    }
+    .pred-eta.ok { color: var(--ok); }
+
+    /* ── HISTORIAL ── */
+    .hist-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hist-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); margin-top: 5px; flex-shrink: 0;
+    }
+    .hist-dot.mant { background: var(--warn); }
+    .hist-dot.alert { background: var(--danger); }
+    .hist-text { font-size: 13px; line-height: 1.4; }
+    .hist-date { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+    /* ── FOOTER TIMESTAMP ── */
+    .live-footer {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 16px calc(6px + var(--safe-bot));
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 5px var(--ok);
+      animation: pulse 1.5s infinite;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-top">
+      <div>
+        <div class="motor-id">AAS · #MTR-4712 · Línea 3</div>
+        <div class="motor-name">WEG W22 · 75 kW</div>
+      </div>
+      <div class="health-badge" id="healthBadge">
+        <div class="health-dot" id="healthDot"></div>
+        <span id="healthText">NORMAL</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MÉTRICAS RÁPIDAS -->
+  <div class="metrics-bar" id="metricsBar">
+    <div class="metric-pill">
+      <div class="metric-label">Temp</div>
+      <div class="metric-value ok" id="mTemp">--</div>
+      <div class="metric-unit">°C</div>
+    </div>
+    <div class="metric-pill">
+      <div class="metric-label">RMS vib</div>
+      <div class="metric-value" id="mRms">--</div>
+      <div class="metric-unit">mm/s</div>
+    </div>
+    <div class="metric-pill">
+      <div class="metric-label">Corriente</div>
+      <div class="metric-value" id="mCurr">--</div>
+      <div class="metric-unit">A</div>
+    </div>
+    <div class="metric-pill">
+      <div class="metric-label">Estado</div>
+      <div class="metric-value ok" id="mOnOff">--</div>
+      <div class="metric-unit">·</div>
+    </div>
+    <div class="metric-pill">
+      <div class="metric-label">Salud</div>
+      <div class="metric-value ok" id="mHealth">--</div>
+      <div class="metric-unit">%</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('live')">EN VIVO</button>
+    <button class="tab-btn" onclick="showTab('vibra')">VIBRACIÓN</button>
+    <button class="tab-btn" onclick="showTab('pred')">PREDICCIÓN</button>
+    <button class="tab-btn" onclick="showTab('aas')">FICHA AAS</button>
+    <button class="tab-btn" onclick="showTab('hist')">HISTORIAL</button>
+  </div>
+
+  <!-- CONTENIDO TABS -->
+  <div class="tab-content">
+
+    <!-- TAB: EN VIVO (iframes Grafana) -->
+    <div class="tab-panel active" id="tab-live">
+      <div class="panel-block">
+        <div class="panel-label">Temperatura — últimos 30 min</div>
+        <!-- REEMPLAZÁ esta URL por tu panel de Grafana: Compartir → Embed -->
+        <iframe class="grafana-panel" id="iframeTemp"
+          src="about:blank"
+          data-src="TU_URL_GRAFANA_TEMPERATURA"
+          title="Temperatura en tiempo real">
+        </iframe>
+      </div>
+      <div class="panel-block">
+        <div class="panel-label">Corriente RMS — últimos 30 min</div>
+        <iframe class="grafana-panel" id="iframeCurr"
+          src="about:blank"
+          data-src="TU_URL_GRAFANA_CORRIENTE"
+          title="Corriente RMS">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- TAB: VIBRACIÓN (FFT + RMS) -->
+    <div class="tab-panel" id="tab-vibra">
+      <div class="panel-block">
+        <div class="panel-label">RMS Vibración — tendencia</div>
+        <iframe class="grafana-panel" id="iframeRms"
+          src="about:blank"
+          data-src="TU_URL_GRAFANA_RMS"
+          title="RMS vibración">
+        </iframe>
+      </div>
+      <div class="panel-block">
+        <div class="panel-label">FFT — espectro de frecuencias</div>
+        <iframe class="grafana-panel" id="iframeFft"
+          src="about:blank"
+          data-src="TU_URL_GRAFANA_FFT"
+          title="FFT espectro">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- TAB: PREDICCIÓN / RUL -->
+    <div class="tab-panel" id="tab-pred">
+      <div class="rul-ring-wrap">
+        <svg viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#1c2330" stroke-width="12"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#00d4ff" stroke-width="12"
+            stroke-dasharray="283" stroke-dashoffset="56"
+            stroke-linecap="round" transform="rotate(-90 60 60)"
+            id="rulArc"/>
+          <text x="60" y="55" text-anchor="middle" fill="#e8edf4"
+            font-family="'JetBrains Mono',monospace" font-size="22" font-weight="700"
+            id="rulPct">80%</text>
+          <text x="60" y="73" text-anchor="middle" fill="#6b7a8d"
+            font-family="'JetBrains Mono',monospace" font-size="9">SALUD</text>
+        </svg>
+        <div class="rul-label">Vida útil restante estimada: <strong id="rulDays" style="color:var(--accent)">~340 días</strong></div>
+      </div>
+
+      <div class="pred-list">
+        <div class="pred-item warn">
+          <div class="pred-icon">⚡</div>
+          <div class="pred-main">
+            <div class="pred-title">Rodamiento delantero</div>
+            <div class="pred-sub">Frecuencia BPFO detectada en FFT. Tendencia ascendente en los últimos 7 días.</div>
+            <div class="pred-eta">⏱ Intervención recomendada en ~45 días</div>
+          </div>
+        </div>
+        <div class="pred-item ok">
+          <div class="pred-icon">🌡️</div>
+          <div class="pred-main">
+            <div class="pred-title">Temperatura de bobinado</div>
+            <div class="pred-sub">Dentro del rango nominal. Sin tendencia de degradación.</div>
+            <div class="pred-eta ok">✓ Sin acción requerida</div>
+          </div>
+        </div>
+        <div class="pred-item ok">
+          <div class="pred-icon">⚙️</div>
+          <div class="pred-main">
+            <div class="pred-title">Aislamiento eléctrico</div>
+            <div class="pred-sub">Corriente sin armónicos anómalos. Eficiencia estable.</div>
+            <div class="pred-eta ok">✓ Sin acción requerida</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <div class="panel-label">Tendencia de salud — 90 días</div>
+        <iframe class="grafana-panel" id="iframeRul"
+          src="about:blank"
+          data-src="TU_URL_GRAFANA_SALUD"
+          title="Tendencia salud">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- TAB: FICHA AAS TIPO -->
+    <div class="tab-panel" id="tab-aas">
+      <div class="ficha-grid">
+        <div class="ficha-item">
+          <div class="ficha-key">Fabricante</div>
+          <div class="ficha-val">WEG</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Modelo</div>
+          <div class="ficha-val accent">W22 IE3</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Potencia</div>
+          <div class="ficha-val">75 kW</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Velocidad</div>
+          <div class="ficha-val">1780 rpm</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Tensión</div>
+          <div class="ficha-val">380/660 V</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Clase efic.</div>
+          <div class="ficha-val accent">IE3</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Protección</div>
+          <div class="ficha-val">IP55</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Año fabric.</div>
+          <div class="ficha-val">2021</div>
+        </div>
+        <div class="ficha-item" style="grid-column:1/-1">
+          <div class="ficha-key">Horas acumuladas (instancia)</div>
+          <div class="ficha-val accent" id="horasAcc">14 280 h</div>
+        </div>
+      </div>
+
+      <div class="mat-bar">
+        <div class="mat-title">Composición de materiales — AAS Tipo</div>
+        <div class="mat-row">
+          <div class="mat-name">Cobre</div>
+          <div class="mat-track"><div class="mat-fill cu" style="width:65%"></div></div>
+          <div class="mat-kg">12.4 kg</div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-name">Acero eléct.</div>
+          <div class="mat-track"><div class="mat-fill fe" style="width:100%"></div></div>
+          <div class="mat-kg">48.0 kg</div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-name">Aluminio</div>
+          <div class="mat-track"><div class="mat-fill al" style="width:32%"></div></div>
+          <div class="mat-kg">6.2 kg</div>
+        </div>
+      </div>
+
+      <div class="ficha-grid">
+        <div class="ficha-item" style="grid-column:1/-1">
+          <div class="ficha-key">Huella de carbono fabricación</div>
+          <div class="ficha-val">284 kg CO₂eq</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Eficiencia nominal</div>
+          <div class="ficha-val accent">94.1 %</div>
+        </div>
+        <div class="ficha-item">
+          <div class="ficha-key">Eficiencia real (campo)</div>
+          <div class="ficha-val" id="efReal">91.8 %</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: HISTORIAL -->
+    <div class="tab-panel" id="tab-hist">
+      <div class="hist-item">
+        <div class="hist-dot"></div>
+        <div>
+          <div class="hist-text">Conexión AAS establecida · Motor incorporado a plataforma 4.0</div>
+          <div class="hist-date">2024-01-15 · 08:30</div>
+        </div>
+      </div>
+      <div class="hist-item">
+        <div class="hist-dot mant"></div>
+        <div>
+          <div class="hist-text">Mantenimiento preventivo · Cambio de rodamiento trasero · Técnico: M. García</div>
+          <div class="hist-date">2024-03-22 · 14:00</div>
+        </div>
+      </div>
+      <div class="hist-item">
+        <div class="hist-dot alert"></div>
+        <div>
+          <div class="hist-text">Alerta temperatura · Pico 92°C por 4 min · Causa: ventilación obstruida</div>
+          <div class="hist-date">2024-06-08 · 03:17</div>
+        </div>
+      </div>
+      <div class="hist-item">
+        <div class="hist-dot mant"></div>
+        <div>
+          <div class="hist-text">Mantenimiento correctivo · Limpieza de ventilación · Temperatura normalizada</div>
+          <div class="hist-date">2024-06-08 · 09:00</div>
+        </div>
+      </div>
+      <div class="hist-item">
+        <div class="hist-dot"></div>
+        <div>
+          <div class="hist-text">Actualización firmware sensor ESP32 · v2.3.1</div>
+          <div class="hist-date">2025-01-10 · 11:00</div>
+        </div>
+      </div>
+      <div class="hist-item">
+        <div class="hist-dot mant"></div>
+        <div>
+          <div class="hist-text">Alerta predictiva BPFO · Rodamiento delantero · Mantenimiento programado</div>
+          <div class="hist-date">2025-06-01 · 00:00</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-content -->
+
+  <!-- FOOTER LIVE -->
+  <div class="live-footer">
+    <div class="live-dot"></div>
+    <span>En vivo · Actualizado <span id="lastUpdate">--:--:--</span></span>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+  // ── TABS ──
+  function showTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    // Lazy load iframes al primer acceso
+    lazyLoadIframes(id);
+  }
+
+  function lazyLoadIframes(tabId) {
+    const panel = document.getElementById('tab-' + tabId);
+    if (!panel) return;
+    panel.querySelectorAll('iframe[data-src]').forEach(iframe => {
+      if (iframe.src === 'about:blank' || !iframe.src) {
+        const url = iframe.getAttribute('data-src');
+        if (url && !url.startsWith('TU_URL')) {
+          iframe.src = url;
+        } else {
+          // Placeholder visual para demo sin Grafana conectado
+          iframe.srcdoc = placeholderChart(iframe.title);
+        }
+      }
+    });
+  }
+
+  function placeholderChart(title) {
+    return `<!DOCTYPE html><html><body style="margin:0;background:#131820;display:flex;align-items:center;justify-content:center;height:100%;font-family:monospace;color:#2a3545;font-size:13px;flex-direction:column;gap:8px">
+      <div style="color:#00d4ff;font-size:11px;letter-spacing:.1em;text-transform:uppercase">${title}</div>
+      <div style="color:#2a3545">Conectar panel Grafana aquí</div>
+      <div style="color:#1c2330;font-size:10px">data-src="TU_URL_GRAFANA_..."</div>
+    </body></html>`;
+  }
+
+  // Cargar iframes del tab inicial
+  lazyLoadIframes('live');
+
+  // ── SIMULACIÓN DE DATOS EN TIEMPO REAL (reemplazar con fetch a API) ──
+  function updateMetrics() {
+    const temp    = (68 + Math.random() * 6).toFixed(1);
+    const rms     = (2.1 + Math.random() * 1.2).toFixed(2);
+    const curr    = (138 + Math.random() * 8).toFixed(1);
+    const on      = Math.random() > 0.05;
+    const health  = 80;
+
+    set('mTemp',   temp,  tempColor(temp));
+    set('mRms',    rms,   rmsColor(rms));
+    set('mCurr',   curr,  'accent');
+    set('mOnOff',  on ? 'ON' : 'OFF', on ? 'ok' : 'danger');
+    set('mHealth', health + '%', healthColor(health));
+
+    // badge global
+    const dot  = document.getElementById('healthDot');
+    const txt  = document.getElementById('healthText');
+    const lvl  = health > 70 ? 'ok' : health > 40 ? 'warn' : 'danger';
+    dot.className = 'health-dot ' + (lvl === 'ok' ? '' : lvl);
+    txt.textContent = lvl === 'ok' ? 'NORMAL' : lvl === 'warn' ? 'ATENCIÓN' : 'CRÍTICO';
+
+    // timestamp
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('es');
+  }
+
+  function set(id, val, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.className = 'metric-value ' + (cls || '');
+  }
+
+  function tempColor(t)  { return t > 80 ? 'danger' : t > 72 ? 'warn' : 'ok'; }
+  function rmsColor(r)   { return r > 3.0 ? 'danger' : r > 2.5 ? 'warn' : ''; }
+  function healthColor(h){ return h > 70 ? 'ok' : h > 40 ? 'warn' : 'danger'; }
+
+  updateMetrics();
+  setInterval(updateMetrics, 3000);
+
+  // ── SERVICE WORKER PARA PWA ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>

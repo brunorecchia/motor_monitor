@@ -1,0 +1,24 @@
+{
+  "name": "Motor 4.0 — AAS Dashboard",
+  "short_name": "Motor 4.0",
+  "description": "Dashboard de gemelo digital para motor de inducción con RAMI 4.0",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0d12",
+  "theme_color": "#0a0d12",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
