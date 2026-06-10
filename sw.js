@@ -1,5 +1,5 @@
 const V = 'motor40-demo-v1';
-const FILES = ['/', '/index.html'];
+const FILES = ['/motor_monitor/', '/motor_monitor/index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(FILES)));
   self.skipWaiting();
