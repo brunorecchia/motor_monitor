@@ -148,6 +148,21 @@ header{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--b1);pad
   margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
 .section-divider::after{content:'';flex:1;height:.5px;background:var(--b2);}
 
+/* ── INSTALL BANNER ── */
+.install-banner{
+  flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:8px 14px;background:linear-gradient(90deg,#0d3a4a,#0a2a38);
+  border-bottom:1px solid var(--acc);
+}
+.install-banner.hidden{display:none;}
+.install-txt{font-size:11px;color:var(--tx2);line-height:1.4;}
+.install-txt b{color:var(--acc);}
+.install-btn{
+  flex-shrink:0;background:var(--acc);color:#000;border:none;border-radius:7px;
+  padding:7px 14px;font-family:var(--cond);font-size:12px;font-weight:700;
+  letter-spacing:.06em;cursor:pointer;white-space:nowrap;
+}
+
 /* ── FOOTER ── */
 footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:6px;
   padding:5px 12px calc(5px + var(--sab));background:var(--bg2);border-top:1px solid var(--b1);
@@ -171,7 +186,13 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:
       <div class="motor-mid" id="motor-mid">AAS · — · esperando datos</div>
       <div class="motor-name" id="motor-name">Motor 4.0 · Live</div>
     </div>
-    <div class="conn-badge" id="conn-badge" onclick="toggleConfig()">
+    <button onclick="installApp()" style="
+  background:none;border:1px solid var(--acc);border-radius:8px;
+  color:var(--acc);font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.08em;padding:5px 10px;cursor:pointer;margin-right:6px;
+  white-space:nowrap;flex-shrink:0;
+" title="Instalar app">⬇ APP</button>
+<div class="conn-badge" id="conn-badge" onclick="toggleConfig()">
       <div class="conn-dot" id="conn-dot"></div>
       <span id="conn-txt">Desconectado</span>
     </div>
@@ -1073,6 +1094,36 @@ function showToast(msg) {
 /* ════════════════════════════════════════════════
    INIT — autoconexión al abrir
 ════════════════════════════════════════════════ */
+// ── INSTALL PWA ──────────────────────────────────────────────
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.remove('hidden');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.add('hidden');
+  deferredPrompt = null;
+  showToast('✓ Motor 4.0 instalada correctamente');
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        document.getElementById('install-banner').classList.add('hidden');
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    // Fallback: instrucciones manuales
+    showToast('Menú ⋮ → "Instalar aplicación" o "Añadir a pantalla inicio"');
+  }
+}
+
 // Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
