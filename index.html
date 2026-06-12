@@ -506,13 +506,45 @@ let buffer = [];
 function pushBuffer(pt) {
   buffer.push(pt);
   if (buffer.length > MAX_BUF) buffer.shift();
+  // Guardar en localStorage cada 10 puntos para no saturar
+  if (buffer.length % 10 === 0) saveBuffer();
+}
+
+function saveBuffer() {
+  try {
+    // Serializar fechas como strings
+    const serial = buffer.map(p => ({...p, t: p.t.toISOString()}));
+    localStorage.setItem('motor40_buffer', JSON.stringify(serial));
+  } catch(e) {}
+}
+
+function loadBuffer() {
+  try {
+    const raw = localStorage.getItem('motor40_buffer');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    // Restaurar fechas
+    buffer = parsed.map(p => ({...p, t: new Date(p.t)}));
+    // Solo mantener datos de la última hora
+    const cutoff = new Date(Date.now() - 3600 * 1000);
+    buffer = buffer.filter(p => p.t > cutoff);
+    if (buffer.length > 0) {
+      const last = buffer[buffer.length - 1];
+      updatePills(last);
+      updateLiveTab(last);
+      updateFFTTab(last);
+      updateAnalysis();
+      showToast(`✓ Buffer restaurado: ${buffer.length} puntos`);
+    }
+  } catch(e) {}
 }
 
 function clearBuffer() {
   buffer = [];
+  localStorage.removeItem('motor40_buffer');
   updateAnalysis();
   document.getElementById('buf-cnt').textContent = '0 pts';
-  alert('Buffer limpiado.');
+  showToast('Buffer limpiado.');
 }
 
 /* ════════════════════════════════════════════════
@@ -530,24 +562,51 @@ function setConnState(state) {
   txt.textContent = labels[state] || 'Desconectado';
 }
 
+let reconnectTimer = null;
+let reconnectDelay = 3000;
+let manualDisconnect = false;
+
 function connectMQTT() {
   if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
+  manualDisconnect = false;
+  clearTimeout(reconnectTimer);
   const clientId = 'motor40_' + Math.random().toString(36).substr(2, 8);
   mqttClient = new Paho.MQTT.Client(gHost(), gPort(), clientId);
-  mqttClient.onConnectionLost = () => setConnState('error');
+  mqttClient.onConnectionLost = (resp) => {
+    setConnState('error');
+    if (!manualDisconnect) scheduleReconnect();
+  };
   mqttClient.onMessageArrived = onMessage;
   setConnState('connecting');
   mqttClient.connect({
     onSuccess: () => {
       setConnState('connected');
       mqttClient.subscribe(gTopic());
+      reconnectDelay = 3000; // reset backoff
     },
-    onFailure: () => setConnState('error'),
+    onFailure: () => {
+      setConnState('error');
+      if (!manualDisconnect) scheduleReconnect();
+    },
     timeout: 8
   });
 }
 
+function scheduleReconnect() {
+  clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => {
+    if (!manualDisconnect) {
+      setConnState('connecting');
+      connectMQTT();
+    }
+  }, reconnectDelay);
+  // Backoff exponencial hasta 30s
+  reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
+}
+
 function disconnectMQTT() {
+  manualDisconnect = true;
+  clearTimeout(reconnectTimer);
   if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
   setConnState('');
 }
@@ -1128,6 +1187,9 @@ function installApp() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// Restaurar buffer de sesión anterior
+loadBuffer();
 
 // Cargar config guardada y conectar automáticamente
 loadConfig();
