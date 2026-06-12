@@ -1,13 +1,13 @@
 {
-  "name": "Motor 4.0 · AAS Dashboard",
+  "name": "Motor 4.0 · Live",
   "short_name": "Motor 4.0",
-  "description": "Gemelo digital para motor de inducción — RAMI 4.0",
+  "description": "Monitor en tiempo real con MQTT — RAMI 4.0",
   "start_url": "/motor_monitor/index.html",
   "scope": "/motor_monitor/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#080b10",
-  "theme_color": "#080b10",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "lang": "es",
   "icons": [
     {

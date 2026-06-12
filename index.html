@@ -3,228 +3,211 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<meta name="theme-color" content="#080b10"/>
+<meta name="theme-color" content="#0b0d10"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<title>Motor 4.0 · Demo</title>
+<meta name="apple-mobile-web-app-title" content="Motor 4.0"/>
+<title>Motor 4.0 · Live</title>
 <link rel="manifest" href="manifest.json"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 <style>
-/* ── TOKENS ─────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500&display=swap');
 :root{
-  --bg:      #080b10;
-  --s1:      #0f1520;
-  --s2:      #161e2e;
-  --s3:      #1e2a3f;
-  --border:  #2a3a52;
-  --accent:  #00e5ff;
-  --accent2: #7b61ff;
-  --ok:      #00d68f;
-  --warn:    #ffaa00;
-  --danger:  #ff4757;
-  --text:    #dde6f0;
-  --muted:   #5a7190;
-  --mono:    'JetBrains Mono','Fira Mono','Courier New',monospace;
-  --ui:      'Inter',system-ui,sans-serif;
-  --r:       10px;
-  --sat:     env(safe-area-inset-top,0px);
-  --sab:     env(safe-area-inset-bottom,0px);
+  --bg:#0b0d10;--bg2:#111318;--bg3:#181c22;
+  --b1:#1e2430;--b2:#28303d;
+  --tx:#d0d8e4;--tx2:#8090a4;--tx3:#404d5e;
+  --acc:#00c2ff;--grn:#22d06e;--yel:#f5c518;--ora:#ff8c42;--red:#ff4757;--teal:#0dcfb8;
+  --mono:'Share Tech Mono','Courier New',monospace;
+  --cond:'Barlow Condensed',sans-serif;
+  --ui:'Barlow',sans-serif;
+  --sat:env(safe-area-inset-top,0px);
+  --sab:env(safe-area-inset-bottom,0px);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--ui);overflow:hidden;-webkit-font-smoothing:antialiased}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--ui);-webkit-font-smoothing:antialiased;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,194,255,.02)1px,transparent 1px),linear-gradient(90deg,rgba(0,194,255,.02)1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0;}
 
-/* ── SHELL ───────────────────────────────────── */
-#app{display:flex;flex-direction:column;height:100dvh;padding-top:var(--sat)}
+/* ── SHELL MOBILE ── */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100dvh;padding-top:var(--sat);}
 
-/* ── HEADER ──────────────────────────────────── */
-header{
-  flex-shrink:0;background:var(--s1);
-  border-bottom:1px solid var(--border);
-  padding:10px 14px 8px;
-}
-.hrow{display:flex;align-items:center;justify-content:space-between}
-.mid{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;margin-bottom:2px}
-.mname{font-size:16px;font-weight:800;letter-spacing:-.03em}
-.badge{
-  display:flex;align-items:center;gap:5px;
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:20px;padding:5px 10px;
-  font-size:11px;font-weight:700;letter-spacing:.06em;
-}
-.dot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite}
-.dot.ok    {background:var(--ok);  box-shadow:0 0 7px var(--ok)}
-.dot.warn  {background:var(--warn);box-shadow:0 0 7px var(--warn)}
-.dot.danger{background:var(--danger);box-shadow:0 0 7px var(--danger)}
+/* ── HEADER ── */
+header{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--b1);padding:10px 14px 8px;}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.motor-mid{font-family:var(--mono);font-size:9px;color:var(--tx3);letter-spacing:.12em;text-transform:uppercase;}
+.motor-name{font-size:15px;font-weight:800;font-family:var(--cond);letter-spacing:-.01em;}
+.conn-badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;background:var(--bg3);border:1px solid var(--b2);border-radius:12px;padding:4px 10px;cursor:pointer;transition:border-color .2s;}
+.conn-badge:hover{border-color:var(--acc);}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:var(--tx3);}
+.conn-dot.connecting{background:var(--yel);animation:blink 1s infinite;}
+.conn-dot.connected{background:var(--grn);box-shadow:0 0 6px var(--grn);}
+.conn-dot.error{background:var(--red);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* ── PILL BAR ────────────────────────────────── */
-.pills{
-  display:flex;gap:7px;overflow-x:auto;
-  padding:8px 14px;flex-shrink:0;
-  background:var(--s1);border-bottom:1px solid var(--border);
-  scrollbar-width:none;
-}
-.pills::-webkit-scrollbar{display:none}
-.pill{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:center;
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:9px;padding:6px 12px;min-width:66px;
-  transition:border-color .25s;
-}
-.pill.hi{border-color:var(--warn)}
-.pill.crit{border-color:var(--danger)}
-.plbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px}
-.pval{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1}
-.pval.c-acc {color:var(--accent)}
-.pval.c-ok  {color:var(--ok)}
-.pval.c-w   {color:var(--warn)}
-.pval.c-d   {color:var(--danger)}
-.punit{font-size:8px;color:var(--muted);margin-top:1px}
+/* ── PILLS ── */
+.pills{display:flex;gap:6px;overflow-x:auto;padding:8px 12px;flex-shrink:0;
+  background:var(--bg2);border-bottom:1px solid var(--b1);scrollbar-width:none;}
+.pills::-webkit-scrollbar{display:none;}
+.pill{flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:6px 11px;min-width:62px;transition:border-color .25s;}
+.pill.hi{border-color:var(--yel);}
+.pill.crit{border-color:var(--red);}
+.plbl{font-family:var(--mono);font-size:7px;color:var(--tx3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px;}
+.pval{font-family:var(--mono);font-size:14px;font-weight:700;line-height:1;}
+.pval.c-acc{color:var(--acc)}.pval.c-ok{color:var(--grn)}.pval.c-w{color:var(--yel)}.pval.c-d{color:var(--red)}.pval.c-tx{color:var(--tx)}
+.punit{font-size:7px;color:var(--tx3);margin-top:1px;}
 
-/* ── TAB BAR ─────────────────────────────────── */
-.tabs{
-  display:flex;flex-shrink:0;overflow-x:auto;
-  background:var(--s1);border-bottom:1px solid var(--border);
-  scrollbar-width:none;
-}
-.tabs::-webkit-scrollbar{display:none}
-.tb{
-  flex-shrink:0;padding:9px 15px;font-size:11px;font-weight:700;
-  color:var(--muted);background:none;border:none;
-  border-bottom:2px solid transparent;cursor:pointer;
-  letter-spacing:.05em;transition:color .15s,border-color .15s;white-space:nowrap;
-}
-.tb.on{color:var(--accent);border-bottom-color:var(--accent)}
+/* ── TABS ── */
+.tabs{display:flex;flex-shrink:0;overflow-x:auto;background:var(--bg2);border-bottom:1px solid var(--b1);scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tb{flex-shrink:0;padding:9px 14px;font-size:11px;font-weight:700;color:var(--tx3);background:none;border:none;
+  border-bottom:2px solid transparent;cursor:pointer;letter-spacing:.05em;transition:color .15s,border-color .15s;white-space:nowrap;}
+.tb.on{color:var(--acc);border-bottom-color:var(--acc);}
 
-/* ── PANELS ──────────────────────────────────── */
-.content{flex:1;overflow:hidden;position:relative}
-.panel{display:none;position:absolute;inset:0;overflow-y:auto;padding-bottom:calc(12px + var(--sab))}
-.panel.on{display:block}
+/* ── CONTENT ── */
+.content{flex:1;overflow:hidden;position:relative;}
+.panel{display:none;position:absolute;inset:0;overflow-y:auto;padding:12px 12px calc(12px + var(--sab));}
+.panel.on{display:block;}
 
-/* ── CHART CARD ──────────────────────────────── */
-.card{
-  margin:12px 14px;background:var(--s2);
-  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
-}
-.clbl{
-  font-family:var(--mono);font-size:9px;color:var(--muted);
-  letter-spacing:.1em;text-transform:uppercase;
-  padding:9px 12px 6px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.clbl span{font-size:9px;color:var(--border)}
-canvas{display:block;width:100%;touch-action:none}
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:11px;margin-bottom:10px;overflow:hidden;}
+.chdr{padding:9px 14px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center;}
+.chdr h3{font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--tx2);}
+.cbody{padding:14px;}
 
-/* ── RUL RING ────────────────────────────────── */
-.rul-wrap{display:flex;flex-direction:column;align-items:center;padding:18px 14px 8px}
-.rul-wrap svg{max-width:160px;width:100%}
-.rul-sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
-.rul-sub strong{color:var(--accent)}
+/* ── CHART ── */
+.chart-wrap{position:relative;height:180px;}
 
-/* ── PRED LIST ───────────────────────────────── */
-.pred{padding:0 14px}
-.pitem{
-  display:flex;gap:11px;align-items:flex-start;
-  background:var(--s2);border:1px solid var(--border);
-  border-radius:var(--r);padding:12px 13px;margin-bottom:9px;
-  transition:border-color .3s;
-}
-.pitem.w{border-color:var(--warn)}
-.pitem.ok{border-color:var(--ok)}
-.pitem.d{border-color:var(--danger)}
-.pico{font-size:22px;flex-shrink:0;margin-top:1px}
-.pmain{flex:1}
-.ptit{font-size:13px;font-weight:700;margin-bottom:3px}
-.psub{font-size:11px;color:var(--muted);line-height:1.45}
-.peta{font-family:var(--mono);font-size:10px;margin-top:5px}
-.peta.w{color:var(--warn)}
-.peta.ok{color:var(--ok)}
-.peta.d{color:var(--danger)}
+/* ── RMS LIVE BARS ── */
+.rms-bars{display:flex;flex-direction:column;gap:8px;}
+.rbar{display:flex;align-items:center;gap:10px;}
+.rbar-lbl{font-family:var(--mono);font-size:11px;width:20px;flex-shrink:0;}
+.rbar-track{flex:1;height:6px;background:var(--b2);border-radius:3px;overflow:hidden;}
+.rbar-fill{height:100%;border-radius:3px;transition:width .5s ease;}
+.rbar-val{font-family:var(--mono);font-size:11px;width:56px;text-align:right;}
 
-/* ── FICHA AAS ───────────────────────────────── */
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 14px}
-.fi{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:9px 11px}
-.fk{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
-.fv{font-size:13px;font-weight:700}
-.fv.a{color:var(--accent)}
-.mbar{margin:0 14px 10px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:13px}
-.mbartit{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
-.mrow{display:flex;align-items:center;gap:9px;margin-bottom:8px}
-.mnom{font-size:11px;color:var(--muted);width:72px;flex-shrink:0}
-.mtrack{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.mfill{height:100%;border-radius:3px;transition:width 1s ease}
-.mfill.cu{background:#f59e0b}
-.mfill.fe{background:#6b7a8d}
-.mfill.al{background:#60a5fa}
-.mkg{font-family:var(--mono);font-size:10px;color:var(--text);width:40px;text-align:right}
+/* ── FFT CARDS ── */
+.fft-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.fft-card{background:var(--bg3);border:1px solid var(--b1);border-radius:9px;padding:11px 10px;}
+.fft-axis{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx3);margin-bottom:5px;}
+.fft-freq{font-family:var(--mono);font-size:18px;font-weight:700;line-height:1;}
+.fft-unit{font-size:9px;color:var(--tx2);margin-top:1px;}
+.fft-amp{font-size:10px;color:var(--tx2);margin-top:6px;}
+.fft-amp b{color:var(--tx);}
+.fft-bar{height:3px;border-radius:2px;background:var(--b2);margin-top:6px;overflow:hidden;}
+.fft-fill{height:100%;border-radius:2px;}
+.fft-badge{display:inline-flex;align-items:center;font-size:9px;padding:2px 7px;border-radius:4px;margin-top:6px;font-family:var(--mono);}
+.badge-ok{background:rgba(34,208,110,.12);color:var(--grn);}
+.badge-w{background:rgba(245,197,24,.12);color:var(--yel);}
+.badge-d{background:rgba(255,71,87,.12);color:var(--red);}
 
-/* ── HISTORIAL ───────────────────────────────── */
-.hitem{display:flex;gap:11px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border)}
-.hdot{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0}
-.hdot.m{background:var(--warn)}
-.hdot.a{background:var(--danger)}
-.htxt{font-size:12px;line-height:1.4}
-.hdt{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
+/* ── STATE BANNER ── */
+.state-banner{border-radius:11px;padding:14px 16px;margin-bottom:10px;border:1.5px solid;}
+.state-banner.excelente{background:rgba(13,207,184,.07);border-color:rgba(13,207,184,.3);}
+.state-banner.atencion{background:rgba(245,197,24,.06);border-color:rgba(245,197,24,.28);}
+.state-banner.alerta{background:rgba(255,140,66,.07);border-color:rgba(255,140,66,.3);}
+.state-banner.critico{background:rgba(255,71,87,.07);border-color:rgba(255,71,87,.3);}
+.sb-row{display:flex;gap:11px;align-items:flex-start;}
+.sb-ico{font-size:22px;flex-shrink:0;}
+.sb-title{font-family:var(--cond);font-size:15px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;}
+.sb-body{font-size:11px;color:var(--tx2);line-height:1.55;}
+.sb-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:10px;}
+.sb-stat{background:rgba(255,255,255,.04);border-radius:7px;padding:8px 10px;}
+.sb-stat-val{font-family:var(--mono);font-size:14px;font-weight:500;}
+.sb-stat-lbl{font-size:9px;color:var(--tx2);margin-top:2px;}
 
-/* ── FOOTER ──────────────────────────────────── */
-footer{
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  gap:6px;padding:5px 14px calc(5px + var(--sab));
-  background:var(--s1);border-top:1px solid var(--border);
-  font-family:var(--mono);font-size:9px;color:var(--muted);
-}
-.ldot{width:5px;height:5px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok);animation:blink 1.5s infinite}
+/* ── GAUGE ── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:10px 0;}
+.gauge-wrap svg{max-width:140px;}
+.gauge-sub{font-family:var(--mono);font-size:10px;color:var(--tx2);margin-top:4px;text-align:center;}
 
-/* ── DEMO RIBBON ─────────────────────────────── */
-.demo-tag{
-  position:fixed;top:calc(var(--sat) + 4px);right:4px;z-index:99;
-  background:var(--accent2);color:#fff;font-family:var(--mono);
-  font-size:8px;letter-spacing:.1em;padding:3px 7px;border-radius:5px;
-  opacity:.7;pointer-events:none;
-}
+/* ── HISTORY CHART ── */
+.no-data{text-align:center;padding:32px 16px;color:var(--tx3);}
+.no-data-ico{font-size:28px;margin-bottom:8px;}
+.no-data-t{font-family:var(--cond);font-size:14px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--tx2);margin-bottom:5px;}
+.no-data-s{font-size:11px;color:var(--tx3);line-height:1.55;}
+
+/* ── CONFIG PANEL ── */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px;}
+.fld label{display:block;font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--tx2);margin-bottom:4px;}
+.fld input,.fld select{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:7px;
+  padding:7px 10px;color:var(--tx);font-family:var(--mono);font-size:12px;outline:none;-webkit-appearance:none;}
+.fld input:focus,.fld select:focus{border-color:var(--acc);}
+.fld select option{background:#181c22;}
+.fld-note{font-size:9px;color:var(--tx3);margin-top:3px;}
+.btn{width:100%;background:var(--acc);color:#000;border:none;border-radius:8px;padding:11px;
+  font-family:var(--cond);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;transition:all .15s;box-shadow:0 0 18px rgba(0,194,255,.22);margin-top:10px;}
+.btn:hover{background:#33d4ff;}
+.btn.danger{background:var(--red);box-shadow:0 0 18px rgba(255,71,87,.2);}
+.btn.danger:hover{background:#ff6b78;}
+.section-divider{font-size:9px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--tx3);
+  margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
+.section-divider::after{content:'';flex:1;height:.5px;background:var(--b2);}
+
+/* ── FOOTER ── */
+footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:5px 12px calc(5px + var(--sab));background:var(--bg2);border-top:1px solid var(--b1);
+  font-family:var(--mono);font-size:9px;color:var(--tx3);}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--grn);box-shadow:0 0 5px var(--grn);animation:blink 1.5s infinite;}
+.ldot.off{background:var(--tx3);box-shadow:none;animation:none;}
+
+/* ── ALERTS ── */
+.alert-item{display:flex;gap:9px;align-items:flex-start;background:var(--bg2);border:1px solid var(--b1);
+  border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:8px 12px;font-size:11px;
+  line-height:1.5;margin-bottom:7px;}
 </style>
 </head>
 <body>
 <div id="app">
 
-<div class="demo-tag">DEMO</div>
-
 <!-- HEADER -->
 <header>
-  <div class="hrow">
+  <div class="hdr-row">
     <div>
-      <div class="mid">AAS · #MTR-4712 · LÍNEA 3 · PLANTA MTY</div>
-      <div class="mname">CZERWENY 3AL · 10 kW</div>
+      <div class="motor-mid" id="motor-mid">AAS · — · esperando datos</div>
+      <div class="motor-name" id="motor-name">Motor 4.0 · Live</div>
     </div>
-    <div class="badge" id="badge"><div class="dot ok" id="bdot"></div><span id="btxt">NORMAL</span></div>
+    <div class="conn-badge" id="conn-badge" onclick="toggleConfig()">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span id="conn-txt">Desconectado</span>
+    </div>
   </div>
 </header>
 
 <!-- PILLS -->
 <div class="pills">
-  <div class="pill" id="pl-temp">
-    <div class="plbl">Temp</div>
-    <div class="pval c-ok" id="pv-temp">--</div>
-    <div class="punit">°C</div>
-  </div>
-  <div class="pill" id="pl-rms">
-    <div class="plbl">RMS vib</div>
-    <div class="pval c-acc" id="pv-rms">--</div>
-    <div class="punit">mm/s</div>
-  </div>
-  <div class="pill" id="pl-curr">
-    <div class="plbl">Corriente</div>
-    <div class="pval c-acc" id="pv-curr">--</div>
-    <div class="punit">A</div>
-  </div>
-  <div class="pill" id="pl-on">
+  <div class="pill" id="pl-estado">
     <div class="plbl">Estado</div>
-    <div class="pval c-ok" id="pv-on">--</div>
+    <div class="pval c-tx" id="pv-estado">—</div>
     <div class="punit">&nbsp;</div>
   </div>
-  <div class="pill" id="pl-hlth">
+  <div class="pill" id="pl-temp">
+    <div class="plbl">Temp</div>
+    <div class="pval c-acc" id="pv-temp">—</div>
+    <div class="punit">°C</div>
+  </div>
+  <div class="pill" id="pl-rx">
+    <div class="plbl">RMS X</div>
+    <div class="pval c-acc" id="pv-rx">—</div>
+    <div class="punit">mm/s</div>
+  </div>
+  <div class="pill" id="pl-ry">
+    <div class="plbl">RMS Y</div>
+    <div class="pval c-acc" id="pv-ry">—</div>
+    <div class="punit">mm/s</div>
+  </div>
+  <div class="pill" id="pl-rz">
+    <div class="plbl">RMS Z</div>
+    <div class="pval c-acc" id="pv-rz">—</div>
+    <div class="punit">mm/s</div>
+  </div>
+  <div class="pill" id="pl-hs">
     <div class="plbl">Salud</div>
-    <div class="pval c-ok" id="pv-hlth">--</div>
+    <div class="pval c-ok" id="pv-hs">—</div>
     <div class="punit">%</div>
   </div>
 </div>
@@ -232,503 +215,873 @@ footer{
 <!-- TABS -->
 <div class="tabs">
   <button class="tb on" onclick="go('live',this)">EN VIVO</button>
-  <button class="tb" onclick="go('vibra',this)">VIBRACIÓN</button>
-  <button class="tb" onclick="go('pred',this)">PREDICCIÓN</button>
-  <button class="tb" onclick="go('aas',this)">FICHA AAS</button>
-  <button class="tb" onclick="go('hist',this)">HISTORIAL</button>
+  <button class="tb" onclick="go('fft',this)">FFT</button>
+  <button class="tb" onclick="go('analisis',this)">ANÁLISIS</button>
+  <button class="tb" onclick="go('cfg',this)">CONFIG</button>
 </div>
 
 <!-- CONTENT -->
 <div class="content">
 
-  <!-- EN VIVO -->
+  <!-- TAB: EN VIVO -->
   <div class="panel on" id="p-live">
+
     <div class="card">
-      <div class="clbl">Temperatura bobinado <span>últimos 30 min</span></div>
-      <canvas id="cTemp" height="140"></canvas>
+      <div class="chdr"><h3>⚡ RMS por eje — en vivo</h3><span id="ts-live" style="font-family:var(--mono);font-size:9px;color:var(--tx3)">—</span></div>
+      <div class="cbody">
+        <div class="rms-bars">
+          <div class="rbar">
+            <div class="rbar-lbl" style="color:#378ADD">X</div>
+            <div class="rbar-track"><div class="rbar-fill" id="barX" style="width:0%;background:#378ADD"></div></div>
+            <div class="rbar-val" id="valX">— mm/s</div>
+          </div>
+          <div class="rbar">
+            <div class="rbar-lbl" style="color:#ff8c42">Y</div>
+            <div class="rbar-track"><div class="rbar-fill" id="barY" style="width:0%;background:#ff8c42"></div></div>
+            <div class="rbar-val" id="valY">— mm/s</div>
+          </div>
+          <div class="rbar">
+            <div class="rbar-lbl" style="color:#E24B4A">Z</div>
+            <div class="rbar-track"><div class="rbar-fill" id="barZ" style="width:0%;background:#E24B4A"></div></div>
+            <div class="rbar-val" id="valZ">— mm/s</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <div style="flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:9px 12px;">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);margin-bottom:3px;">TEMPERATURA</div>
+            <div style="font-family:var(--mono);font-size:20px;font-weight:700;" id="big-temp">—</div>
+            <div style="font-size:9px;color:var(--tx2);">°C</div>
+          </div>
+          <div style="flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:9px 12px;">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);margin-bottom:3px;">RMS TOTAL</div>
+            <div style="font-family:var(--mono);font-size:20px;font-weight:700;" id="big-rms">—</div>
+            <div style="font-size:9px;color:var(--tx2);">mm/s (máx)</div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="card">
-      <div class="clbl">Corriente RMS <span>últimos 30 min</span></div>
-      <canvas id="cCurr" height="140"></canvas>
+      <div class="chdr"><h3>📈 Tendencia RMS — última hora</h3><span id="buf-cnt" style="font-family:var(--mono);font-size:9px;color:var(--tx3)">0 pts</span></div>
+      <div class="cbody">
+        <div class="chart-wrap"><canvas id="cLive"></canvas></div>
+      </div>
     </div>
+
+    <div id="alerts-live"></div>
+
   </div>
 
-  <!-- VIBRACIÓN -->
-  <div class="panel" id="p-vibra">
+  <!-- TAB: FFT -->
+  <div class="panel" id="p-fft">
     <div class="card">
-      <div class="clbl">RMS Vibración <span>últimas 2 h</span></div>
-      <canvas id="cRms" height="140"></canvas>
+      <div class="chdr"><h3>📡 Pico FFT — último mensaje</h3></div>
+      <div class="cbody">
+        <div class="fft-grid">
+          <div class="fft-card">
+            <div class="fft-axis" style="color:#378ADD">Eje X</div>
+            <div class="fft-freq" id="fft-freq-x">—</div>
+            <div class="fft-unit">Hz</div>
+            <div class="fft-amp">Amp: <b id="fft-amp-x">—</b> m/s²</div>
+            <div class="fft-bar"><div class="fft-fill" id="fft-bar-x" style="width:0%;background:#378ADD"></div></div>
+            <div class="fft-badge badge-ok" id="fft-badge-x">—</div>
+          </div>
+          <div class="fft-card">
+            <div class="fft-axis" style="color:#ff8c42">Eje Y</div>
+            <div class="fft-freq" id="fft-freq-y">—</div>
+            <div class="fft-unit">Hz</div>
+            <div class="fft-amp">Amp: <b id="fft-amp-y">—</b> m/s²</div>
+            <div class="fft-bar"><div class="fft-fill" id="fft-bar-y" style="width:0%;background:#ff8c42"></div></div>
+            <div class="fft-badge badge-ok" id="fft-badge-y">—</div>
+          </div>
+          <div class="fft-card">
+            <div class="fft-axis" style="color:#E24B4A">Eje Z</div>
+            <div class="fft-freq" id="fft-freq-z">—</div>
+            <div class="fft-unit">Hz</div>
+            <div class="fft-amp">Amp: <b id="fft-amp-z">—</b> m/s²</div>
+            <div class="fft-bar"><div class="fft-fill" id="fft-bar-z" style="width:0%;background:#E24B4A"></div></div>
+            <div class="fft-badge badge-ok" id="fft-badge-z">—</div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="card">
-      <div class="clbl">Espectro FFT <span>instante actual</span></div>
-      <canvas id="cFft" height="180"></canvas>
-    </div>
-  </div>
-
-  <!-- PREDICCIÓN -->
-  <div class="panel" id="p-pred">
-    <div class="rul-wrap">
-      <svg viewBox="0 0 120 120">
-        <circle cx="60" cy="60" r="50" fill="none" stroke="#1e2a3f" stroke-width="11"/>
-        <circle cx="60" cy="60" r="50" fill="none" stroke="url(#rg)" stroke-width="11"
-          stroke-dasharray="314" id="rulArc" stroke-dashoffset="72"
-          stroke-linecap="round" transform="rotate(-90 60 60)"/>
-        <defs>
-          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#00e5ff"/>
-            <stop offset="100%" stop-color="#7b61ff"/>
-          </linearGradient>
-        </defs>
-        <text x="60" y="53" text-anchor="middle" fill="#dde6f0"
-          font-family="'JetBrains Mono',monospace" font-size="22" font-weight="800">77%</text>
-        <text x="60" y="70" text-anchor="middle" fill="#5a7190"
-          font-family="'JetBrains Mono',monospace" font-size="8">SALUD</text>
-      </svg>
-      <div class="rul-sub">Vida útil restante estimada: <strong>~310 días</strong></div>
-    </div>
-
-    <div class="pred">
-      <div class="pitem d">
-        <div class="pico">⚡</div>
-        <div class="pmain">
-          <div class="ptit">Rodamiento delantero (DE)</div>
-          <div class="psub">Frecuencia BPFO a 87 Hz detectada en FFT. Amplitud +34% sobre línea base. Tendencia ascendente 7 días consecutivos.</div>
-          <div class="peta d">⏱ Intervención recomendada en ~18 días</div>
-        </div>
-      </div>
-      <div class="pitem w">
-        <div class="pico">🌡️</div>
-        <div class="pmain">
-          <div class="ptit">Temperatura de bobinado</div>
-          <div class="psub">Promedio últimas 72 h: 74.2°C. Tendencia leve al alza (+1.8°C/semana). Monitorear ventilación.</div>
-          <div class="peta w">⚠ Revisar en próximo mantenimiento</div>
-        </div>
-      </div>
-      <div class="pitem ok">
-        <div class="pico">⚙️</div>
-        <div class="pmain">
-          <div class="ptit">Aislamiento eléctrico</div>
-          <div class="psub">Corriente sin armónicos anómalos. THD 3.2%, dentro del límite IEC 60034-1.</div>
-          <div class="peta ok">✓ Sin acción requerida</div>
-        </div>
-      </div>
-      <div class="pitem ok">
-        <div class="pico">🔩</div>
-        <div class="pmain">
-          <div class="ptit">Desbalanceo mecánico</div>
-          <div class="psub">Componente 1× = 0.8 mm/s. Muy por debajo del límite ISO 10816 clase III (7.1 mm/s).</div>
-          <div class="peta ok">✓ Sin acción requerida</div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:4px">
-        <div class="clbl">Tendencia de salud <span>últimos 90 días</span></div>
-        <canvas id="cHealth" height="140"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- FICHA AAS -->
-  <div class="panel" id="p-aas">
-    <div class="fgrid">
-      <div class="fi"><div class="fk">Fabricante</div><div class="fv">WEG</div></div>
-      <div class="fi"><div class="fk">Modelo</div><div class="fv a">W22 IE3</div></div>
-      <div class="fi"><div class="fk">Potencia</div><div class="fv">75 kW</div></div>
-      <div class="fi"><div class="fk">Velocidad</div><div class="fv">1780 rpm</div></div>
-      <div class="fi"><div class="fk">Tensión</div><div class="fv">380/660 V</div></div>
-      <div class="fi"><div class="fk">Clase efic.</div><div class="fv a">IE3</div></div>
-      <div class="fi"><div class="fk">Protección</div><div class="fv">IP55</div></div>
-      <div class="fi"><div class="fk">Fabricación</div><div class="fv">2021</div></div>
-      <div class="fi" style="grid-column:1/-1">
-        <div class="fk">Horas acumuladas (instancia)</div>
-        <div class="fv a">14 280 h</div>
-      </div>
-      <div class="fi"><div class="fk">Eficiencia nominal</div><div class="fv a">94.1 %</div></div>
-      <div class="fi"><div class="fk">Eficiencia real campo</div><div class="fv">91.4 %</div></div>
-      <div class="fi" style="grid-column:1/-1">
-        <div class="fk">Huella CO₂ fabricación</div>
-        <div class="fv">284 kg CO₂eq</div>
+      <div class="chdr"><h3>📊 Evolución frecuencia dominante</h3></div>
+      <div class="cbody">
+        <div class="chart-wrap"><canvas id="cFFT"></canvas></div>
       </div>
     </div>
 
-    <div class="mbar">
-      <div class="mbartit">Composición de materiales · AAS Tipo</div>
-      <div class="mrow">
-        <div class="mnom">Cobre</div>
-        <div class="mtrack"><div class="mfill cu" id="mcu" style="width:0%"></div></div>
-        <div class="mkg">12.4 kg</div>
-      </div>
-      <div class="mrow">
-        <div class="mnom">Acero eléct.</div>
-        <div class="mtrack"><div class="mfill fe" id="mfe" style="width:0%"></div></div>
-        <div class="mkg">48.0 kg</div>
-      </div>
-      <div class="mrow">
-        <div class="mnom">Aluminio</div>
-        <div class="mtrack"><div class="mfill al" id="mal" style="width:0%"></div></div>
-        <div class="mkg">6.2 kg</div>
-      </div>
-    </div>
-
-    <div class="fgrid">
-      <div class="fi" style="grid-column:1/-1">
-        <div class="fk">Submodelos AAS activos</div>
-        <div class="fv" style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.7">
-          NameplateV3 · TechnicalData · Materials · Maintenance · EnergyConsumption · HealthMonitoring · CarbonFootprint
-        </div>
+    <div class="card">
+      <div class="chdr"><h3>📊 Evolución amplitud pico</h3></div>
+      <div class="cbody">
+        <div class="chart-wrap"><canvas id="cAmp"></canvas></div>
       </div>
     </div>
   </div>
 
-  <!-- HISTORIAL -->
-  <div class="panel" id="p-hist">
-    <div class="hitem">
-      <div class="hdot"></div>
-      <div><div class="htxt">Motor incorporado a plataforma AAS · Gemelo digital inicializado</div><div class="hdt">2024-01-15 · 08:30</div></div>
+  <!-- TAB: ANÁLISIS -->
+  <div class="panel" id="p-analisis">
+    <div id="analysis-content">
+      <div class="no-data">
+        <div class="no-data-ico">📊</div>
+        <div class="no-data-t">Acumulando datos</div>
+        <div class="no-data-s">El análisis de condición requiere al menos 20 lecturas activas.<br>El motor debe estar encendido (RMS &gt; umbral).</div>
+      </div>
     </div>
-    <div class="hitem">
-      <div class="hdot m"></div>
-      <div><div class="htxt">Mantto. preventivo · Cambio rodamiento trasero NDE · Técnico: M. García</div><div class="hdt">2024-03-22 · 14:00</div></div>
+  </div>
+
+  <!-- TAB: CONFIG -->
+  <div class="panel" id="p-cfg">
+
+    <div class="card">
+      <div class="chdr"><h3>🔌 Conexión MQTT</h3></div>
+      <div class="cbody">
+        <div class="cfg-grid">
+          <div class="fld" style="grid-column:1/-1">
+            <label>IP del broker (PC local)</label>
+            <input type="text" id="cfg-host" value="192.168.1.100" placeholder="192.168.1.X"/>
+            <div class="fld-note">IP de la PC donde corre Mosquitto</div>
+          </div>
+          <div class="fld">
+            <label>Puerto WebSocket</label>
+            <input type="number" id="cfg-port" value="9001"/>
+          </div>
+          <div class="fld">
+            <label>Topic MQTT</label>
+            <input type="text" id="cfg-topic" value="motores/MTR-4712/datos"/>
+          </div>
+        </div>
+        <button class="btn" id="btn-connect" onclick="connectMQTT()">▶ CONECTAR</button>
+        <button class="btn danger" onclick="disconnectMQTT()" style="margin-top:6px">■ DESCONECTAR</button>
+      </div>
     </div>
-    <div class="hitem">
-      <div class="hdot a"></div>
-      <div><div class="htxt">Alerta temperatura · Pico 91°C por 4 min · Causa: ventilación obstruida</div><div class="hdt">2024-06-08 · 03:17</div></div>
+
+    <div class="card">
+      <div class="chdr"><h3>⚙ Parámetros del motor</h3></div>
+      <div class="cbody">
+        <div class="section-divider">Motor</div>
+        <div class="cfg-grid">
+          <div class="fld">
+            <label>ID / Nombre</label>
+            <input type="text" id="cfg-motorid" value="MTR-4712"/>
+          </div>
+          <div class="fld">
+            <label>RPM nominales</label>
+            <input type="number" id="cfg-rpm" value="1450"/>
+          </div>
+          <div class="fld">
+            <label>Umbral ON/OFF (mm/s)</label>
+            <input type="number" id="cfg-onoff" value="0.5" min="0.1" max="5" step="0.1"/>
+            <div class="fld-note">RMS máx. para considerar motor encendido</div>
+          </div>
+          <div class="fld">
+            <label>Eje axial</label>
+            <select id="cfg-ax">
+              <option value="0">X</option>
+              <option value="1" selected>Y</option>
+              <option value="2">Z</option>
+            </select>
+          </div>
+        </div>
+        <div class="section-divider">Umbrales ISO 10816-3 (mm/s)</div>
+        <div class="cfg-grid">
+          <div class="fld">
+            <label>Atención (Tb)</label>
+            <input type="number" id="cfg-tb" value="4.5" step="0.1"/>
+          </div>
+          <div class="fld">
+            <label>Alerta (Ta)</label>
+            <input type="number" id="cfg-ta" value="7.1" step="0.1"/>
+          </div>
+          <div class="fld">
+            <label>Crítico (Tc)</label>
+            <input type="number" id="cfg-tc" value="11.0" step="0.1"/>
+          </div>
+          <div class="fld">
+            <label>Intervención (Ri)</label>
+            <input type="number" id="cfg-ri" value="25" step="0.5"/>
+          </div>
+        </div>
+        <div class="section-divider">Rodamiento (para FFT)</div>
+        <div class="cfg-grid">
+          <div class="fld">
+            <label>Nº de bolas</label>
+            <input type="number" id="cfg-bolas" value="0" min="0"/>
+          </div>
+          <div class="fld">
+            <label>Bd/Pd</label>
+            <input type="number" id="cfg-bdpd" value="0.38" step="0.01"/>
+          </div>
+          <div class="fld">
+            <label>Ángulo contacto (°)</label>
+            <input type="number" id="cfg-alpha" value="0" step="1"/>
+          </div>
+          <div class="fld">
+            <label>Nº álabes/paletas</label>
+            <input type="number" id="cfg-alabes" value="0" min="0"/>
+          </div>
+        </div>
+        <button class="btn" onclick="saveConfig()">💾 GUARDAR CONFIG</button>
+        <button class="btn danger" onclick="clearBuffer()" style="margin-top:6px">🗑 LIMPIAR BUFFER</button>
+      </div>
     </div>
-    <div class="hitem">
-      <div class="hdot m"></div>
-      <div><div class="htxt">Mantto. correctivo · Limpieza ventilación · Temperatura normalizada a 68°C</div><div class="hdt">2024-06-08 · 09:00</div></div>
+
+    <div class="card">
+      <div class="chdr"><h3>ℹ Setup Mosquitto</h3></div>
+      <div class="cbody" style="font-size:11px;color:var(--tx2);line-height:1.8;">
+        <p style="margin-bottom:8px;">Para habilitar WebSocket en Mosquitto, agregá esto a <code style="color:var(--acc)">mosquitto.conf</code>:</p>
+        <div style="background:var(--bg3);border:1px solid var(--b2);border-radius:8px;padding:12px;font-family:var(--mono);font-size:11px;color:var(--teal);line-height:2;margin-bottom:8px;">
+          listener 1883<br>
+          allow_anonymous true<br><br>
+          listener 9001<br>
+          protocol websockets<br>
+          allow_anonymous true
+        </div>
+        <p>Reiniciá Mosquitto y conectá desde la misma red WiFi.</p>
+      </div>
     </div>
-    <div class="hitem">
-      <div class="hdot"></div>
-      <div><div class="htxt">Calibración sensor vibración · Línea base actualizada · ESP32 fw v2.3.1</div><div class="hdt">2025-01-10 · 11:00</div></div>
-    </div>
-    <div class="hitem">
-      <div class="hdot a"></div>
-      <div><div class="htxt">Alerta predictiva BPFO · Rodamiento DE · Mantenimiento agendado</div><div class="hdt">2025-06-01 · 00:00</div></div>
-    </div>
+
   </div>
 
 </div><!-- /content -->
 
 <footer>
-  <div class="ldot"></div>
-  <span>Actualizado <span id="ts">--:--:--</span> · Demo Mode</span>
+  <div class="ldot off" id="ldot"></div>
+  <span id="footer-ts">Sin datos · Motor 4.0 Live</span>
 </footer>
 
 </div><!-- /app -->
 
 <script>
+'use strict';
+
 /* ════════════════════════════════════════════════
-   TABS
+   CONFIG GETTERS
+════════════════════════════════════════════════ */
+const gHost   = () => document.getElementById('cfg-host').value.trim() || '192.168.1.100';
+const gPort   = () => +document.getElementById('cfg-port').value || 9001;
+const gTopic  = () => document.getElementById('cfg-topic').value.trim() || 'motores/MTR-4712/datos';
+const gOnOff  = () => +document.getElementById('cfg-onoff').value || 0.5;
+const gAx     = () => +document.getElementById('cfg-ax').value;
+const gRpm    = () => +document.getElementById('cfg-rpm').value || 1450;
+const gTb     = () => +document.getElementById('cfg-tb').value || 4.5;
+const gTa     = () => +document.getElementById('cfg-ta').value || 7.1;
+const gTc     = () => +document.getElementById('cfg-tc').value || 11.0;
+const gRi     = () => +document.getElementById('cfg-ri').value || 25;
+const gBolas  = () => +document.getElementById('cfg-bolas').value || 0;
+const gBdPd   = () => +document.getElementById('cfg-bdpd').value || 0.38;
+const gAlpha  = () => +document.getElementById('cfg-alpha').value || 0;
+const gAlabes = () => +document.getElementById('cfg-alabes').value || 0;
+
+/* ════════════════════════════════════════════════
+   BUFFER DE DATOS (720 pts = 1 hora a 5seg)
+════════════════════════════════════════════════ */
+const MAX_BUF = 720;
+let buffer = [];
+// [{t, x, y, z, temp, fft_vx, fft_fx, fft_vy, fft_fy, fft_vz, fft_fz}]
+
+function pushBuffer(pt) {
+  buffer.push(pt);
+  if (buffer.length > MAX_BUF) buffer.shift();
+}
+
+function clearBuffer() {
+  buffer = [];
+  updateAnalysis();
+  document.getElementById('buf-cnt').textContent = '0 pts';
+  alert('Buffer limpiado.');
+}
+
+/* ════════════════════════════════════════════════
+   MQTT
+════════════════════════════════════════════════ */
+let mqttClient = null;
+
+function setConnState(state) {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-txt');
+  const ldot = document.getElementById('ldot');
+  dot.className = 'conn-dot ' + state;
+  ldot.className = 'ldot' + (state === 'connected' ? '' : ' off');
+  const labels = { connecting: 'Conectando…', connected: 'Conectado', error: 'Error', '': 'Desconectado' };
+  txt.textContent = labels[state] || 'Desconectado';
+}
+
+function connectMQTT() {
+  if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
+  const clientId = 'motor40_' + Math.random().toString(36).substr(2, 8);
+  mqttClient = new Paho.MQTT.Client(gHost(), gPort(), clientId);
+  mqttClient.onConnectionLost = () => setConnState('error');
+  mqttClient.onMessageArrived = onMessage;
+  setConnState('connecting');
+  mqttClient.connect({
+    onSuccess: () => {
+      setConnState('connected');
+      mqttClient.subscribe(gTopic());
+    },
+    onFailure: () => setConnState('error'),
+    timeout: 8
+  });
+}
+
+function disconnectMQTT() {
+  if (mqttClient && mqttClient.isConnected()) mqttClient.disconnect();
+  setConnState('');
+}
+
+function toggleConfig() {
+  go('cfg', document.querySelectorAll('.tb')[3]);
+}
+
+/* ════════════════════════════════════════════════
+   MENSAJE ENTRANTE
+════════════════════════════════════════════════ */
+function onMessage(msg) {
+  let d;
+  try { d = JSON.parse(msg.payloadString); } catch(e) { return; }
+
+  const t = d.timestamp ? new Date(d.timestamp) : new Date();
+  const x = +d.rms_x || 0, y = +d.rms_y || 0, z = +d.rms_z || 0;
+  const temp = +d.temperatura || 0;
+  const fft_vx = +d.value_fft_x || 0, fft_fx = +d.frecuencia_fft_x || 0;
+  const fft_vy = +d.value_fft_y || 0, fft_fy = +d.frecuencia_fft_y || 0;
+  const fft_vz = +d.value_fft_z || 0, fft_fz = +d.frecuencia_fft_z || 0;
+
+  const pt = { t, x, y, z, temp, fft_vx, fft_fx, fft_vy, fft_fy, fft_vz, fft_fz };
+  pushBuffer(pt);
+
+  // Actualizar header
+  if (d.motor_id) {
+    document.getElementById('motor-mid').textContent = `AAS · ${d.motor_id} · en vivo`;
+    document.getElementById('motor-name').textContent = `${document.getElementById('cfg-motorid').value} · Live`;
+  }
+
+  updatePills(pt);
+  updateLiveTab(pt);
+  updateFFTTab(pt);
+  updateAnalysis();
+  updateFooter(t);
+}
+
+/* ════════════════════════════════════════════════
+   PILLS
+════════════════════════════════════════════════ */
+function updatePills(pt) {
+  const { x, y, z, temp } = pt;
+  const rmsMax = Math.max(x, y, z);
+  const on = rmsMax > gOnOff();
+  const tb = gTb(), ta = gTa(), tc = gTc();
+
+  setPill('estado', on ? 'ON' : 'OFF', on ? 'c-ok' : 'c-d', false);
+  setPill('temp', temp.toFixed(1), temp > 85 ? 'c-d' : temp > 75 ? 'c-w' : 'c-acc', temp > 75);
+  setPill('rx', x.toFixed(2), rmsColor(x), x > tb);
+  setPill('ry', y.toFixed(2), rmsColor(y), y > tb);
+  setPill('rz', z.toFixed(2), rmsColor(z), z > tb);
+
+  // Health score rápido
+  const hs = quickHealth(rmsMax);
+  setPill('hs', hs + '%', hs >= 70 ? 'c-ok' : hs >= 40 ? 'c-w' : 'c-d', hs < 70);
+}
+
+function setPill(key, val, cls, hi) {
+  const el = document.getElementById('pv-' + key);
+  if (el) { el.textContent = val; el.className = 'pval ' + cls; }
+  const pl = document.getElementById('pl-' + key);
+  if (pl) pl.className = 'pill' + (hi ? ' hi' : '');
+}
+
+function rmsColor(v) {
+  const tb = gTb(), ta = gTa(), tc = gTc();
+  return v >= tc ? 'c-d' : v >= ta ? 'c-d' : v >= tb ? 'c-w' : 'c-acc';
+}
+
+function quickHealth(rms) {
+  const tb = gTb(), ta = gTa(), tc = gTc();
+  if (rms < tb) return 85;
+  if (rms < ta) return 65;
+  if (rms < tc) return 40;
+  return Math.max(10, Math.round(40 - (rms - tc) * 2));
+}
+
+/* ════════════════════════════════════════════════
+   TAB EN VIVO
+════════════════════════════════════════════════ */
+let chartLive = null;
+
+function updateLiveTab(pt) {
+  const { x, y, z, temp, t } = pt;
+  const rmsMax = Math.max(x, y, z);
+  const maxScale = Math.max(gTc() * 1.2, rmsMax * 1.1, 5);
+
+  // Barras
+  set('barX', 'style.width', pct(x, maxScale) + '%');
+  set('barY', 'style.width', pct(y, maxScale) + '%');
+  set('barZ', 'style.width', pct(z, maxScale) + '%');
+  set('valX', 'textContent', x.toFixed(2) + ' mm/s');
+  set('valY', 'textContent', y.toFixed(2) + ' mm/s');
+  set('valZ', 'textContent', z.toFixed(2) + ' mm/s');
+  set('big-temp', 'textContent', temp.toFixed(1));
+  set('big-rms', 'textContent', rmsMax.toFixed(2));
+  set('ts-live', 'textContent', t.toLocaleTimeString('es'));
+  set('buf-cnt', 'textContent', buffer.length + ' pts');
+
+  // Gráfica línea
+  const labels = buffer.map(p => p.t.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const dX = buffer.map(p => p.x);
+  const dY = buffer.map(p => p.y);
+  const dZ = buffer.map(p => p.z);
+
+  if (!chartLive) {
+    const ctx = document.getElementById('cLive').getContext('2d');
+    chartLive = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'X', data: dX, borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,.06)', borderWidth: 1.5, pointRadius: 0, fill: false, tension: .3 },
+          { label: 'Y', data: dY, borderColor: '#ff8c42', borderWidth: 1.5, pointRadius: 0, fill: false, tension: .3 },
+          { label: 'Z', data: dZ, borderColor: '#E24B4A', borderWidth: 1.5, pointRadius: 0, fill: false, tension: .3 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { labels: { color: '#8090a4', font: { size: 9 }, boxWidth: 8, padding: 8 } } },
+        scales: {
+          x: { ticks: { color: '#404d5e', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, grid: { color: '#1e2430' } },
+          y: { ticks: { color: '#404d5e', font: { size: 9, family: 'Share Tech Mono' }, callback: v => v.toFixed(1) }, grid: { color: '#1e2430' } }
+        }
+      }
+    });
+  } else {
+    chartLive.data.labels = labels;
+    chartLive.data.datasets[0].data = dX;
+    chartLive.data.datasets[1].data = dY;
+    chartLive.data.datasets[2].data = dZ;
+    chartLive.update('none');
+  }
+
+  // Alertas rápidas
+  const alerts = [];
+  const tb = gTb(), ta = gTa(), tc = gTc();
+  if (Math.max(x, y, z) >= tc) alerts.push({ c: 'var(--red)', t: '⚠ Vibración CRÍTICA', b: `RMS máximo: ${Math.max(x,y,z).toFixed(2)} mm/s — zona C/D ISO 10816-3. Parada inmediata recomendada.` });
+  else if (Math.max(x, y, z) >= ta) alerts.push({ c: 'var(--ora)', t: '⚡ Zona de alerta', b: `RMS máximo: ${Math.max(x,y,z).toFixed(2)} mm/s — programar mantenimiento.` });
+  else if (Math.max(x, y, z) >= tb) alerts.push({ c: 'var(--yel)', t: '📈 Atención', b: `RMS en zona de atención (${Math.max(x,y,z).toFixed(2)} mm/s). Monitorear frecuencia.` });
+  if (temp > 85) alerts.push({ c: 'var(--red)', t: '🌡 Temperatura crítica', b: `${temp.toFixed(1)}°C supera límite de 85°C. Verificar ventilación.` });
+  else if (temp > 75) alerts.push({ c: 'var(--yel)', t: '🌡 Temperatura elevada', b: `${temp.toFixed(1)}°C — revisar ventilación del motor.` });
+
+  const el = document.getElementById('alerts-live');
+  el.innerHTML = alerts.map(a => `<div class="alert-item" style="border-left-color:${a.c}"><div><b>${a.t}</b><br>${a.b}</div></div>`).join('');
+}
+
+/* ════════════════════════════════════════════════
+   TAB FFT
+════════════════════════════════════════════════ */
+let chartFFT = null, chartAmp = null;
+
+function updateFFTTab(pt) {
+  const { fft_vx, fft_fx, fft_vy, fft_fy, fft_vz, fft_fz } = pt;
+
+  // Calcular frecuencias de referencia
+  const freqRefs = calcFreqRefs();
+  const maxAmp = Math.max(fft_vx, fft_vy, fft_vz, 0.1);
+
+  updateFFTCard('x', fft_fx, fft_vx, '#378ADD', freqRefs, maxAmp);
+  updateFFTCard('y', fft_fy, fft_vy, '#ff8c42', freqRefs, maxAmp);
+  updateFFTCard('z', fft_fz, fft_vz, '#E24B4A', freqRefs, maxAmp);
+
+  // Gráficas históricas FFT
+  const active = buffer.filter(p => Math.max(p.x, p.y, p.z) > gOnOff());
+  if (active.length < 2) return;
+
+  const lbls = active.map(p => p.t.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }));
+  const dFX = active.map(p => p.fft_fx);
+  const dFY = active.map(p => p.fft_fy);
+  const dFZ = active.map(p => p.fft_fz);
+  const dAX = active.map(p => p.fft_vx);
+  const dAY = active.map(p => p.fft_vy);
+  const dAZ = active.map(p => p.fft_vz);
+
+  const chartCfg = (labels, datasets) => ({
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { color: '#8090a4', font: { size: 9 }, boxWidth: 8, padding: 8 } } },
+      scales: {
+        x: { ticks: { color: '#404d5e', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, grid: { color: '#1e2430' } },
+        y: { ticks: { color: '#404d5e', font: { size: 9, family: 'Share Tech Mono' } }, grid: { color: '#1e2430' } }
+      }
+    }
+  });
+
+  if (!chartFFT) {
+    chartFFT = new Chart(document.getElementById('cFFT').getContext('2d'), chartCfg(lbls, [
+      { label: 'X', data: dFX, borderColor: '#378ADD', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+      { label: 'Y', data: dFY, borderColor: '#ff8c42', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+      { label: 'Z', data: dFZ, borderColor: '#E24B4A', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+    ]));
+  } else {
+    chartFFT.data.labels = lbls;
+    chartFFT.data.datasets[0].data = dFX;
+    chartFFT.data.datasets[1].data = dFY;
+    chartFFT.data.datasets[2].data = dFZ;
+    chartFFT.update('none');
+  }
+
+  if (!chartAmp) {
+    chartAmp = new Chart(document.getElementById('cAmp').getContext('2d'), chartCfg(lbls, [
+      { label: 'X', data: dAX, borderColor: '#378ADD', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+      { label: 'Y', data: dAY, borderColor: '#ff8c42', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+      { label: 'Z', data: dAZ, borderColor: '#E24B4A', borderWidth: 1.5, pointRadius: 0, tension: .3 },
+    ]));
+  } else {
+    chartAmp.data.labels = lbls;
+    chartAmp.data.datasets[0].data = dAX;
+    chartAmp.data.datasets[1].data = dAY;
+    chartAmp.data.datasets[2].data = dAZ;
+    chartAmp.update('none');
+  }
+}
+
+function updateFFTCard(ax, freq, amp, color, freqRefs, maxAmp) {
+  set('fft-freq-' + ax, 'textContent', freq ? freq.toFixed(0) : '—');
+  set('fft-amp-' + ax, 'textContent', amp ? amp.toFixed(2) : '—');
+  const bar = document.getElementById('fft-bar-' + ax);
+  if (bar) bar.style.width = pct(amp, maxAmp * 1.1) + '%';
+
+  const badge = document.getElementById('fft-badge-' + ax);
+  if (badge && freq) {
+    const match = classifyFreq(freq, freqRefs);
+    badge.className = 'fft-badge';
+    if (match === 'bpfo' || match === 'bpfi') {
+      badge.classList.add('badge-d'); badge.textContent = match.toUpperCase() + ' ⚠';
+    } else if (match === '2x_rot' || match === 'high_freq') {
+      badge.classList.add('badge-w'); badge.textContent = match;
+    } else {
+      badge.classList.add('badge-ok'); badge.textContent = match || 'Normal';
+    }
+  }
+}
+
+// Reutilizamos la función correcta con el nombre del parámetro
+function updateFFTCard(ax, freq, amp, color, freqRefs, maxAmp) {
+  const freqEl = document.getElementById('fft-freq-' + ax);
+  const ampEl  = document.getElementById('fft-amp-' + ax);
+  const bar    = document.getElementById('fft-bar-' + ax);
+  const badge  = document.getElementById('fft-badge-' + ax);
+  if (freqEl) freqEl.textContent = freq ? freq.toFixed(0) : '—';
+  if (ampEl)  ampEl.textContent  = amp  ? amp.toFixed(2) : '—';
+  if (bar)    bar.style.width    = pct(amp, Math.max(maxAmp * 1.1, 0.1)) + '%';
+  if (badge && freq) {
+    const match = classifyFreq(freq, freqRefs);
+    badge.className = 'fft-badge';
+    if (match === 'bpfo' || match === 'bpfi') {
+      badge.classList.add('badge-d'); badge.textContent = match.toUpperCase() + ' ⚠';
+    } else if (['2x_rot','3x_rot','high_freq'].includes(match)) {
+      badge.classList.add('badge-w'); badge.textContent = match;
+    } else {
+      badge.classList.add('badge-ok'); badge.textContent = match || '—';
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════
+   ANÁLISIS (lógica del v4 adaptada a buffer live)
+════════════════════════════════════════════════ */
+function updateAnalysis() {
+  const active = buffer.filter(p => Math.max(p.x, p.y, p.z) > gOnOff());
+  const el = document.getElementById('analysis-content');
+
+  if (active.length < 20) {
+    el.innerHTML = `<div class="no-data">
+      <div class="no-data-ico">📊</div>
+      <div class="no-data-t">Acumulando datos</div>
+      <div class="no-data-s">Se necesitan al menos 20 lecturas activas.<br>Activas: <b style="color:var(--acc)">${active.length}</b> / 20</div>
+    </div>`;
+    setPill('hs', '—', 'c-tx', false);
+    return;
+  }
+
+  // Health Score basado en los últimos datos activos
+  const recent = active.slice(-20);
+  const rmsVals = recent.map(p => Math.max(p.x, p.y, p.z));
+  const rmsAvg = rmsVals.reduce((a, b) => a + b) / rmsVals.length;
+  const rmsMax = Math.max(...rmsVals);
+  const tb = gTb(), ta = gTa(), tc = gTc();
+  const std = Math.sqrt(rmsVals.reduce((a, v) => a + (v - rmsAvg) ** 2, 0) / rmsVals.length);
+  const cv = rmsAvg > 0 ? std / rmsAvg : 0;
+  const pctCrit = rmsVals.filter(v => v >= tc).length / rmsVals.length * 100;
+
+  // Tendencia
+  const slope = linSlope(rmsVals);
+  const slopePct = rmsAvg > 0 ? slope * 20 / rmsAvg * 100 : 0;
+
+  // Ratio axial
+  const axIdx = gAx();
+  const axVals = recent.map(p => [p.x, p.y, p.z][axIdx]);
+  const radVals = recent.map(p => {
+    const vals = [p.x, p.y, p.z];
+    const rad = vals.filter((_, i) => i !== axIdx);
+    return rad.reduce((a, b) => a + b) / rad.length;
+  });
+  const ratioArr = axVals.map((ax, i) => radVals[i] > 0 ? ax / radVals[i] : 1);
+  const ratio = ratioArr.reduce((a, b) => a + b) / ratioArr.length;
+
+  const sc = subScores(rmsAvg, slopePct, ratio, cv, pctCrit);
+  const hs = sc.total;
+  const estado = rmsAvg >= tc ? 'critico' : rmsAvg >= ta ? 'alerta' : slopePct > 5 ? 'atencion' : 'excelente';
+
+  // Actualizar pill salud
+  setPill('hs', hs + '%', hs >= 70 ? 'c-ok' : hs >= 40 ? 'c-w' : 'c-d', hs < 70);
+
+  const estadoLabel = { excelente: 'Motor en buen estado', atencion: 'Tendencia alcista', alerta: 'Zona de alerta', critico: 'Condición crítica' };
+  const estadoCfg = {
+    excelente: { ico: '✅', color: '#0dcfb8', body: `RMS promedio ${rmsAvg.toFixed(2)} mm/s, por debajo del umbral de atención (${tb} mm/s). Sin tendencia de deterioro significativa.` },
+    atencion:  { ico: '📈', color: '#f5c518', body: `RMS promedio ${rmsAvg.toFixed(2)} mm/s dentro del rango aceptable, con tendencia creciente. Monitoreo frecuente recomendado.` },
+    alerta:    { ico: '⚡', color: '#ff8c42', body: `RMS promedio ${rmsAvg.toFixed(2)} mm/s supera umbral de atención (${tb} mm/s). Programar mantenimiento preventivo.` },
+    critico:   { ico: '🔴', color: '#ff4757', body: `RMS promedio ${rmsAvg.toFixed(2)} mm/s en zona crítica (>${tc} mm/s). Inspección urgente requerida.` }
+  };
+  const cfg = estadoCfg[estado];
+
+  // Análisis FFT rápido
+  const lastFFT = active[active.length - 1];
+  const freqRefs = calcFreqRefs();
+  const fftAlerts = [];
+  ['x', 'y', 'z'].forEach(ax => {
+    const freq = lastFFT['fft_f' + ax], amp = lastFFT['fft_v' + ax];
+    if (!freq) return;
+    const match = classifyFreq(freq, freqRefs);
+    if (match === 'bpfo') fftAlerts.push(`Eje ${ax.toUpperCase()}: frecuencia BPFO detectada (${freq.toFixed(0)} Hz, ${amp.toFixed(2)} m/s²) — posible daño en pista exterior de rodamiento.`);
+    if (match === 'bpfi') fftAlerts.push(`Eje ${ax.toUpperCase()}: frecuencia BPFI detectada (${freq.toFixed(0)} Hz, ${amp.toFixed(2)} m/s²) — posible daño en pista interior de rodamiento.`);
+  });
+
+  el.innerHTML = `
+    <div class="state-banner ${estado}">
+      <div class="sb-row">
+        <div class="sb-ico">${cfg.ico}</div>
+        <div style="flex:1">
+          <div class="sb-title" style="color:${cfg.color}">${estadoLabel[estado]}</div>
+          <div class="sb-body">${cfg.body}</div>
+        </div>
+      </div>
+      <div class="sb-stats">
+        <div class="sb-stat"><div class="sb-stat-val" style="color:${cfg.color}">${rmsAvg.toFixed(2)} mm/s</div><div class="sb-stat-lbl">RMS promedio</div></div>
+        <div class="sb-stat"><div class="sb-stat-val" style="color:${cfg.color}">${rmsMax.toFixed(2)} mm/s</div><div class="sb-stat-lbl">RMS máximo</div></div>
+        <div class="sb-stat"><div class="sb-stat-val" style="color:${cfg.color}">${hs}</div><div class="sb-stat-lbl">Health Score</div></div>
+        <div class="sb-stat"><div class="sb-stat-val" style="color:${cfg.color}">${active.length}</div><div class="sb-stat-lbl">Lecturas activas</div></div>
+      </div>
+    </div>
+
+    ${fftAlerts.map(a => `<div class="alert-item" style="border-left-color:var(--red)"><div>⚡ <b>Alerta FFT</b><br>${a}</div></div>`).join('')}
+
+    <div class="card">
+      <div class="chdr"><h3>📊 Indicadores de condición</h3></div>
+      <div class="cbody">
+        ${renderIndicator('Zona ISO 10816-3', sc.s1, rmsAvg.toFixed(2) + ' mm/s')}
+        ${renderIndicator('Tendencia', sc.s2, (slopePct > 0 ? '+' : '') + slopePct.toFixed(1) + '%/ciclo')}
+        ${renderIndicator('Ratio axial/radial', sc.s3, ratio.toFixed(2))}
+        ${renderIndicator('Coef. variación', sc.s4, (cv * 100).toFixed(1) + '%')}
+        ${renderIndicator('% sobre umbral crítico', sc.s5, pctCrit.toFixed(0) + '%')}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="chdr"><h3>📈 Tendencia RMS — buffer activo</h3></div>
+      <div class="cbody"><div class="chart-wrap"><canvas id="cAnalysis"></canvas></div></div>
+    </div>
+  `;
+
+  // Gráfica de análisis
+  setTimeout(() => {
+    const canvas = document.getElementById('cAnalysis');
+    if (!canvas) return;
+    const labels = active.map(p => p.t.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }));
+    const data = active.map(p => Math.max(p.x, p.y, p.z));
+    new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'RMS máx', data,
+          borderColor: cfg.color, backgroundColor: cfg.color + '15',
+          borderWidth: 2, pointRadius: 0, fill: true, tension: .3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#404d5e', font: { size: 8 }, maxTicksLimit: 6, maxRotation: 0 }, grid: { color: '#1e2430' } },
+          y: { ticks: { color: '#404d5e', font: { size: 9, family: 'Share Tech Mono' }, callback: v => v.toFixed(1) }, grid: { color: '#1e2430' } }
+        }
+      }
+    });
+  }, 50);
+}
+
+function renderIndicator(label, score, valor) {
+  const color = score >= 80 ? '#22d06e' : score >= 60 ? '#f5c518' : score >= 40 ? '#ff8c42' : '#ff4757';
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <div style="font-size:11px;color:var(--tx2);width:140px;flex-shrink:0;">${label}</div>
+    <div style="flex:1;height:4px;background:var(--b2);border-radius:2px;overflow:hidden;">
+      <div style="height:100%;width:${score}%;background:${color};border-radius:2px;transition:width .5s;"></div>
+    </div>
+    <div style="font-family:var(--mono);font-size:10px;color:${color};width:70px;text-align:right;">${score}/100</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--tx3);width:60px;text-align:right;">${valor}</div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════════════
+   FRECUENCIAS DE REFERENCIA
+════════════════════════════════════════════════ */
+function calcFreqRefs() {
+  const f1x = gRpm() / 60;
+  const refs = { f1x };
+  const nb = gBolas(), bdpd = gBdPd(), alpha = gAlpha();
+  if (nb > 0) {
+    const ca = Math.cos(alpha * Math.PI / 180);
+    refs.bpfo = nb / 2 * f1x * (1 - bdpd * ca);
+    refs.bpfi = nb / 2 * f1x * (1 + bdpd * ca);
+  }
+  if (gAlabes() > 0) refs.bpf = f1x * gAlabes();
+  return refs;
+}
+
+function classifyFreq(f, refs) {
+  if (!f || !refs) return null;
+  const near = (freq, ref, tol = 0.12) => ref > 0 && Math.abs(freq - ref) / ref < tol;
+  if (near(f, refs.f1x, 0.15)) return '1x_rot';
+  if (near(f, refs.f1x * 2, 0.12)) return '2x_rot';
+  if (near(f, refs.f1x * 3, 0.12)) return '3x_rot';
+  if (refs.bpfo && near(f, refs.bpfo, 0.15)) return 'bpfo';
+  if (refs.bpfi && near(f, refs.bpfi, 0.15)) return 'bpfi';
+  if (refs.bpf  && near(f, refs.bpf,  0.10)) return 'bpf';
+  if (f > 400) return 'high_freq';
+  return 'other';
+}
+
+/* ════════════════════════════════════════════════
+   HEALTH SCORE (del v4)
+════════════════════════════════════════════════ */
+const PESOS = { zona: .40, tend: .25, ratio: .10, cv: .05, pct: .20 };
+function subScores(rms, sp, ratio, cv, pctCD) {
+  const tb = gTb(), ta = gTa(), tc = gTc();
+  const s1 = rms < tb ? 100 : rms < ta ? 75 : rms < tc ? 40 : Math.max(0, Math.round(40 - (rms - tc) * 2));
+  const s2 = sp < -10 ? 100 : sp <= 5 ? 70 : sp <= 20 ? 35 : Math.max(0, Math.round(35 - (sp - 20)));
+  const s3 = ratio <= 1.0 ? 100 : ratio <= 1.2 ? 60 : Math.max(0, Math.round(60 - (ratio - 1.2) * 100));
+  const s4 = cv < .20 ? 100 : cv < .50 ? 60 : Math.max(0, Math.round(60 - (cv - .5) * 80));
+  const s5 = pctCD < 10 ? 100 : pctCD < 50 ? 50 : Math.max(0, Math.round(50 - (pctCD - 50) * .8));
+  const total = Math.round(s1 * PESOS.zona + s2 * PESOS.tend + s3 * PESOS.ratio + s4 * PESOS.cv + s5 * PESOS.pct);
+  return { s1, s2, s3, s4, s5, total };
+}
+
+function linSlope(arr) {
+  const n = arr.length; if (n < 2) return 0;
+  let sx = 0, sy = 0, sxy = 0, sx2 = 0;
+  for (let i = 0; i < n; i++) { sx += i; sy += arr[i]; sxy += i * arr[i]; sx2 += i * i; }
+  return (n * sxy - sx * sy) / (n * sx2 - sx * sx);
+}
+
+/* ════════════════════════════════════════════════
+   TABS & UTILS
 ════════════════════════════════════════════════ */
 function go(id, btn) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
   document.getElementById('p-' + id).classList.add('on');
   btn.classList.add('on');
-  if (id === 'aas') animateBars();
-  if (id === 'pred') drawHealth();
+}
+
+function set(id, prop, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (prop.includes('.')) {
+    const parts = prop.split('.');
+    el[parts[0]][parts[1]] = val;
+  } else {
+    el[prop] = val;
+  }
+}
+
+function pct(val, max) { return Math.min(100, max > 0 ? val / max * 100 : 0); }
+
+function updateFooter(t) {
+  document.getElementById('footer-ts').textContent = `Actualizado ${t.toLocaleTimeString('es')} · Motor 4.0 Live`;
+  document.getElementById('ldot').className = 'ldot';
+}
+
+function saveConfig() {
+  // Guardar en localStorage
+  const cfg = {
+    host:    gHost(),
+    port:    gPort(),
+    topic:   gTopic(),
+    motorid: document.getElementById('cfg-motorid').value,
+    rpm:     gRpm(),
+    onoff:   gOnOff(),
+    ax:      gAx(),
+    tb:      gTb(),
+    ta:      gTa(),
+    tc:      gTc(),
+    ri:      gRi(),
+  };
+  localStorage.setItem('motor40_cfg', JSON.stringify(cfg));
+  // Reconectar con nueva config
+  if (mqttClient && mqttClient.isConnected()) {
+    mqttClient.disconnect();
+  }
+  setTimeout(connectMQTT, 400);
+  showToast('✓ Config guardada y reconectando...');
+}
+
+function loadConfig() {
+  const raw = localStorage.getItem('motor40_cfg');
+  if (!raw) return;
+  try {
+    const cfg = JSON.parse(raw);
+    if (cfg.host)    document.getElementById('cfg-host').value    = cfg.host;
+    if (cfg.port)    document.getElementById('cfg-port').value    = cfg.port;
+    if (cfg.topic)   document.getElementById('cfg-topic').value   = cfg.topic;
+    if (cfg.motorid) document.getElementById('cfg-motorid').value = cfg.motorid;
+    if (cfg.rpm)     document.getElementById('cfg-rpm').value     = cfg.rpm;
+    if (cfg.onoff)   document.getElementById('cfg-onoff').value   = cfg.onoff;
+    if (cfg.ax !== undefined) document.getElementById('cfg-ax').value = cfg.ax;
+    if (cfg.tb)      document.getElementById('cfg-tb').value      = cfg.tb;
+    if (cfg.ta)      document.getElementById('cfg-ta').value      = cfg.ta;
+    if (cfg.tc)      document.getElementById('cfg-tc').value      = cfg.tc;
+    if (cfg.ri)      document.getElementById('cfg-ri').value      = cfg.ri;
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:calc(40px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#00c2ff;color:#000;font-family:var(--mono);font-size:11px;font-weight:700;padding:8px 18px;border-radius:20px;z-index:999;transition:opacity .4s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 2500);
 }
 
 /* ════════════════════════════════════════════════
-   SIMULACIÓN DE DATOS
+   INIT — autoconexión al abrir
 ════════════════════════════════════════════════ */
-let TEMP = 70, RMS = 2.4, CURR = 140, ON = true, HEALTH = 77;
-
-// Buffers para series temporales (últimos 40 puntos)
-const BUF = 40;
-const tempBuf  = Array.from({length:BUF}, (_,i) => 68 + Math.sin(i/5)*3 + Math.random()*2);
-const currBuf  = Array.from({length:BUF}, (_,i) => 138 + Math.sin(i/4)*5 + Math.random()*3);
-const rmsBuf   = Array.from({length:BUF}, (_,i) => {
-  const trend = i > 25 ? (i-25)*0.04 : 0; // simular degradación
-  return 2.0 + trend + Math.random()*0.3;
-});
-
-function pushBuf(buf, val) { buf.push(val); if(buf.length > BUF) buf.shift(); }
-
-function tick() {
-  // Evolución gradual con algo de ruido
-  TEMP  += (Math.random() - 0.47) * 0.5;
-  TEMP   = Math.max(64, Math.min(85, TEMP));
-  CURR  += (Math.random() - 0.48) * 1.5;
-  CURR   = Math.max(130, Math.min(152, CURR));
-  RMS   += (Math.random() - 0.45) * 0.06;
-  RMS    = Math.max(1.8, Math.min(4.2, RMS));
-
-  pushBuf(tempBuf, TEMP);
-  pushBuf(currBuf, CURR);
-  pushBuf(rmsBuf, RMS);
-
-  updatePills();
-  drawAll();
-  document.getElementById('ts').textContent = new Date().toLocaleTimeString('es');
-}
-
-function updatePills() {
-  // Temperatura
-  const tc = TEMP > 80 ? 'c-d' : TEMP > 74 ? 'c-w' : 'c-ok';
-  setPill('temp', TEMP.toFixed(1), tc, TEMP > 74);
-
-  // RMS
-  const rc = RMS > 3.2 ? 'c-d' : RMS > 2.8 ? 'c-w' : 'c-acc';
-  setPill('rms', RMS.toFixed(2), rc, RMS > 2.8);
-
-  // Corriente
-  setPill('curr', CURR.toFixed(1), 'c-acc', false);
-
-  // ON/OFF
-  const oc = ON ? 'c-ok' : 'c-d';
-  setPill('on', ON ? 'ON' : 'OFF', oc, false);
-  document.getElementById('pl-on').className = 'pill ' + (ON ? '' : 'crit');
-
-  // Salud
-  const hc = HEALTH > 70 ? 'c-ok' : HEALTH > 40 ? 'c-w' : 'c-d';
-  setPill('hlth', HEALTH + '%', hc, HEALTH < 70);
-
-  // Badge global
-  const lvl = HEALTH > 70 ? 'ok' : HEALTH > 40 ? 'warn' : 'danger';
-  document.getElementById('bdot').className = 'dot ' + lvl;
-  document.getElementById('btxt').textContent =
-    lvl==='ok' ? 'NORMAL' : lvl==='warn' ? 'ATENCIÓN' : 'CRÍTICO';
-}
-
-function setPill(key, val, cls, hi) {
-  const el = document.getElementById('pv-'+key);
-  el.textContent = val;
-  el.className = 'pval ' + cls;
-  document.getElementById('pl-'+key).className = 'pill' + (hi ? ' hi' : '');
-}
-
-/* ════════════════════════════════════════════════
-   CANVAS UTILITIES
-════════════════════════════════════════════════ */
-function resize(canvas) {
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
-  canvas.height = rect.height * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  return {ctx, w: rect.width, h: rect.height};
-}
-
-function lineChart(canvas, data, color, yMin, yMax, unit, threshWarn, threshDanger) {
-  const {ctx, w, h} = resize(canvas);
-  const PAD = {t:8, b:24, l:36, r:10};
-  const cw = w - PAD.l - PAD.r;
-  const ch = h - PAD.t - PAD.b;
-
-  ctx.clearRect(0, 0, w, h);
-
-  // Grid
-  ctx.strokeStyle = '#1e2a3f';
-  ctx.lineWidth = 1;
-  const steps = 4;
-  for (let i = 0; i <= steps; i++) {
-    const y = PAD.t + ch * (i / steps);
-    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + cw, y); ctx.stroke();
-    const val = yMax - (yMax - yMin) * i / steps;
-    ctx.fillStyle = '#3a4f6a';
-    ctx.font = `9px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
-    ctx.textAlign = 'right';
-    ctx.fillText(val.toFixed(0), PAD.l - 4, y + 3);
-  }
-
-  // Threshold lines
-  if (threshWarn) {
-    const ty = PAD.t + ch * (1 - (threshWarn - yMin) / (yMax - yMin));
-    ctx.strokeStyle = 'rgba(255,170,0,.4)';
-    ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.moveTo(PAD.l, ty); ctx.lineTo(PAD.l + cw, ty); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-  if (threshDanger) {
-    const dy = PAD.t + ch * (1 - (threshDanger - yMin) / (yMax - yMin));
-    ctx.strokeStyle = 'rgba(255,71,87,.4)';
-    ctx.setLineDash([4,4]);
-    ctx.beginPath(); ctx.moveTo(PAD.l, dy); ctx.lineTo(PAD.l + cw, dy); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Area gradient
-  const grad = ctx.createLinearGradient(0, PAD.t, 0, PAD.t + ch);
-  grad.addColorStop(0, color + '33');
-  grad.addColorStop(1, color + '00');
-
-  // Path
-  const pts = data.map((v, i) => ({
-    x: PAD.l + cw * i / (data.length - 1),
-    y: PAD.t + ch * (1 - Math.max(0, Math.min(1, (v - yMin) / (yMax - yMin))))
-  }));
-
-  ctx.beginPath();
-  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-  ctx.lineTo(pts[pts.length-1].x, PAD.t + ch);
-  ctx.lineTo(pts[0].x, PAD.t + ch);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Line
-  ctx.beginPath();
-  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-
-  // Last value dot
-  const last = pts[pts.length-1];
-  ctx.beginPath();
-  ctx.arc(last.x, last.y, 4, 0, Math.PI*2);
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  // X labels
-  ctx.fillStyle = '#3a4f6a';
-  ctx.textAlign = 'center';
-  ctx.font = `8px monospace`;
-  ['30m','20m','10m','ahora'].forEach((lbl, i) => {
-    const x = PAD.l + cw * (i / 3);
-    ctx.fillText(lbl, x, h - 6);
-  });
-}
-
-/* ── FFT ── */
-let fftPhase = 0;
-function drawFft() {
-  const canvas = document.getElementById('cFft');
-  const {ctx, w, h} = resize(canvas);
-  const PAD = {t:10, b:28, l:36, r:10};
-  const cw = w - PAD.l - PAD.r;
-  const ch = h - PAD.t - PAD.b;
-
-  ctx.clearRect(0, 0, w, h);
-
-  // Frecuencias de interés en Hz
-  const freqs = [25,50,75,100,125,150,175,200,225,250,275,300];
-  // Amplitudes base — con BPFO a 87Hz (entre bin 75 y 100)
-  const baseAmps = [0.12,0.85,0.10,0.18,0.08,0.22,0.06,0.10,0.05,0.09,0.04,0.07];
-  // BPFO spike entre freqs 75 y 100 Hz
-  const bpfoAmps = [0.0, 0.0, 0.65, 0.45, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
-
-  fftPhase += 0.04;
-  const bw = (cw / freqs.length) * 0.65;
-
-  // Grid & labels eje X
-  ctx.fillStyle = '#3a4f6a';
-  ctx.font = '8px monospace';
-  ctx.textAlign = 'center';
-
-  freqs.forEach((f, i) => {
-    const x = PAD.l + cw * (i + 0.5) / freqs.length;
-    if (i % 2 === 0) ctx.fillText(f + 'Hz', x, h - 6);
-  });
-
-  // Eje Y
-  [0,0.25,0.5,0.75,1].forEach(frac => {
-    const y = PAD.t + ch * (1 - frac);
-    ctx.strokeStyle = '#1e2a3f';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(PAD.l + cw, y); ctx.stroke();
-    if (frac > 0) {
-      ctx.fillStyle = '#3a4f6a';
-      ctx.textAlign = 'right';
-      ctx.fillText((frac).toFixed(2), PAD.l - 4, y + 3);
-    }
-  });
-
-  // Barras
-  freqs.forEach((f, i) => {
-    const noise = (Math.sin(fftPhase + i * 1.3) * 0.03);
-    const bpfo  = bpfoAmps[i] * (0.9 + Math.sin(fftPhase * 0.7 + i) * 0.1);
-    const amp   = Math.min(1, baseAmps[i] + bpfo + noise);
-    const barH  = amp * ch;
-    const x     = PAD.l + cw * (i + 0.5) / freqs.length - bw / 2;
-    const y     = PAD.t + ch - barH;
-
-    // Color: rojo si es BPFO spike
-    const isBpfo = bpfoAmps[i] > 0.3;
-    const grad = ctx.createLinearGradient(0, y, 0, PAD.t + ch);
-    if (isBpfo) {
-      grad.addColorStop(0, '#ff4757');
-      grad.addColorStop(1, '#ff475733');
-    } else if (f === 50) {
-      grad.addColorStop(0, '#00e5ff');
-      grad.addColorStop(1, '#00e5ff33');
-    } else {
-      grad.addColorStop(0, '#7b61ff');
-      grad.addColorStop(1, '#7b61ff22');
-    }
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.roundRect(x, y, bw, barH, [3, 3, 0, 0]);
-    ctx.fill();
-  });
-
-  // Anotación BPFO
-  const bpfoX = PAD.l + cw * (2.5 + 0.5) / freqs.length;
-  ctx.fillStyle = 'rgba(255,71,87,.85)';
-  ctx.font = 'bold 9px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('BPFO 87Hz', bpfoX + cw/freqs.length, PAD.t + 8);
-}
-
-/* ── HEALTH TREND ── */
-function drawHealth() {
-  const canvas = document.getElementById('cHealth');
-  if (!canvas) return;
-  const healthBuf = Array.from({length:90}, (_,i) => {
-    const base = 92 - i * 0.15;
-    const drop = i > 70 ? -(i-70)*0.18 : 0;
-    return Math.max(50, base + drop + (Math.random()-0.5)*1.5);
-  });
-  lineChart(canvas, healthBuf, '#00d68f', 50, 100, '%', 70, 50);
-}
-
-/* ── DRAW ALL VISIBLE ── */
-function drawAll() {
-  const live  = document.getElementById('p-live').classList.contains('on');
-  const vibra = document.getElementById('p-vibra').classList.contains('on');
-  const pred  = document.getElementById('p-pred').classList.contains('on');
-
-  if (live) {
-    lineChart(document.getElementById('cTemp'), tempBuf, '#ff6b6b', 60, 90, '°C', 75, 83);
-    lineChart(document.getElementById('cCurr'), currBuf, '#00e5ff', 120, 160, 'A', 148, 156);
-  }
-  if (vibra) {
-    lineChart(document.getElementById('cRms'), rmsBuf, '#7b61ff', 1.5, 5.0, 'mm/s', 3.0, 4.0);
-    drawFft();
-  }
-  if (pred) drawHealth();
-}
-
-/* ── MATERIAL BARS ANIMATION ── */
-function animateBars() {
-  setTimeout(() => {
-    document.getElementById('mcu').style.width = '65%';
-    document.getElementById('mfe').style.width = '100%';
-    document.getElementById('mal').style.width = '32%';
-  }, 80);
-}
-
-/* ── INIT ── */
-updatePills();
-drawAll();
-drawFft();
-
-// FFT siempre animado en su tab
-setInterval(() => {
-  if (document.getElementById('p-vibra').classList.contains('on')) drawFft();
-}, 80);
-
-// Datos cada 2s
-setInterval(tick, 2000);
-
 // Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// Cargar config guardada y conectar automáticamente
+loadConfig();
+setConnState('connecting');
+setTimeout(connectMQTT, 600);
 </script>
 </body>
 </html>
