@@ -870,27 +870,6 @@ function updateFFTTab(pt) {
 }
 
 function updateFFTCard(ax, freq, amp, color, freqRefs, maxAmp) {
-  set('fft-freq-' + ax, 'textContent', freq ? freq.toFixed(0) : '—');
-  set('fft-amp-' + ax, 'textContent', amp ? amp.toFixed(2) : '—');
-  const bar = document.getElementById('fft-bar-' + ax);
-  if (bar) bar.style.width = pct(amp, maxAmp * 1.1) + '%';
-
-  const badge = document.getElementById('fft-badge-' + ax);
-  if (badge && freq) {
-    const match = classifyFreq(freq, freqRefs);
-    badge.className = 'fft-badge';
-    if (match === 'bpfo' || match === 'bpfi') {
-      badge.classList.add('badge-d'); badge.textContent = match.toUpperCase() + ' ⚠';
-    } else if (match === '2x_rot' || match === 'high_freq') {
-      badge.classList.add('badge-w'); badge.textContent = match;
-    } else {
-      badge.classList.add('badge-ok'); badge.textContent = match || 'Normal';
-    }
-  }
-}
-
-// Reutilizamos la función correcta con el nombre del parámetro
-function updateFFTCard(ax, freq, amp, color, freqRefs, maxAmp) {
   const freqEl = document.getElementById('fft-freq-' + ax);
   const ampEl  = document.getElementById('fft-amp-' + ax);
   const bar    = document.getElementById('fft-bar-' + ax);
@@ -957,18 +936,8 @@ function updateAnalysis() {
   const hs = sc.total;
   const estado = rmsAvg >= tc ? 'critico' : rmsAvg >= ta ? 'alerta' : slopePct > 5 ? 'atencion' : 'excelente';
 
-  // Guardar estado actual para OT
-  window._otData = {
-    motorId:   document.getElementById('cfg-motorid').value || 'MTR-4712',
-    estado,
-    hs,
-    rmsAvg:    rmsAvg.toFixed(3),
-    rmsMax:    rmsMax.toFixed(3),
-    temp:      buffer.length ? buffer[buffer.length-1].temp.toFixed(1) : '—',
-    fftAlerts,
-    slopePct:  slopePct.toFixed(1),
-    lecturas:  active.length,
-  };
+  // Guardar estado actual para OT (después de calcular fftAlerts)
+  window._otData = null; // se actualiza más abajo
 
   // Actualizar pill salud
   setPill('hs', hs + '%', hs >= 70 ? 'c-ok' : hs >= 40 ? 'c-w' : 'c-d', hs < 70);
@@ -993,6 +962,19 @@ function updateAnalysis() {
     if (match === 'bpfo') fftAlerts.push(`Eje ${ax.toUpperCase()}: frecuencia BPFO detectada (${freq.toFixed(0)} Hz, ${amp.toFixed(2)} m/s²) — posible daño en pista exterior de rodamiento.`);
     if (match === 'bpfi') fftAlerts.push(`Eje ${ax.toUpperCase()}: frecuencia BPFI detectada (${freq.toFixed(0)} Hz, ${amp.toFixed(2)} m/s²) — posible daño en pista interior de rodamiento.`);
   });
+
+  // Guardar estado para OT ahora que fftAlerts está calculado
+  window._otData = {
+    motorId:   document.getElementById('cfg-motorid').value || 'MTR-4712',
+    estado,
+    hs,
+    rmsAvg:    rmsAvg.toFixed(3),
+    rmsMax:    rmsMax.toFixed(3),
+    temp:      buffer.length ? buffer[buffer.length-1].temp.toFixed(1) : '—',
+    fftAlerts,
+    slopePct:  slopePct.toFixed(1),
+    lecturas:  active.length,
+  };
 
   el.innerHTML = `
     <div class="state-banner ${estado}">
