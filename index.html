@@ -148,6 +148,36 @@ header{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--b1);pad
   margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
 .section-divider::after{content:'';flex:1;height:.5px;background:var(--b2);}
 
+/* ── OT BUTTON & MODAL ── */
+.ot-btn{
+  width:100%;background:linear-gradient(135deg,var(--ora),var(--red));
+  color:#fff;border:none;border-radius:10px;padding:13px;
+  font-family:var(--cond);font-size:15px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;cursor:pointer;margin-bottom:10px;
+  box-shadow:0 0 20px rgba(255,71,87,.3);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.ot-btn:active{transform:scale(.98);}
+
+.ot-modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.ot-modal-bg.hidden{display:none;}
+.ot-modal{
+  background:var(--bg2);border:1px solid var(--border, var(--b1));
+  border-radius:18px 18px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+  width:100%;max-width:520px;max-height:85vh;overflow-y:auto;
+}
+.ot-modal h2{font-family:var(--cond);font-size:18px;font-weight:800;letter-spacing:.04em;margin-bottom:4px;}
+.ot-modal .ot-sub{font-size:11px;color:var(--tx2);margin-bottom:16px;}
+.ot-preview{background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:14px;margin-bottom:14px;font-size:11px;line-height:1.9;color:var(--tx2);}
+.ot-preview b{color:var(--tx);}
+.ot-row{display:flex;gap:8px;margin-top:4px;}
+.ot-row .btn{flex:1;margin-top:0;}
+.btn-sec{background:var(--bg3);color:var(--tx);border:1px solid var(--b2);box-shadow:none;}
+.btn-sec:hover{background:var(--b1);}
+
 /* ── INSTALL BANNER ── */
 .install-banner{
   flex-shrink:0;display:flex;align-items:center;justify-content:space-between;
@@ -467,6 +497,19 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:
   </div>
 
 </div><!-- /content -->
+
+<!-- OT MODAL -->
+<div class="ot-modal-bg hidden" id="ot-modal-bg" onclick="if(event.target===this)closeOT()">
+  <div class="ot-modal">
+    <h2>🔧 Orden de Trabajo</h2>
+    <div class="ot-sub">Revisá los datos y confirmá para generar la OT</div>
+    <div class="ot-preview" id="ot-preview">—</div>
+    <div class="ot-row">
+      <button class="btn btn-sec" onclick="closeOT()">✕ CANCELAR</button>
+      <button class="btn" onclick="confirmarOT()" style="background:var(--ora);box-shadow:0 0 16px rgba(255,140,66,.3)">✓ CONFIRMAR OT</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   <div class="ldot off" id="ldot"></div>
@@ -914,6 +957,19 @@ function updateAnalysis() {
   const hs = sc.total;
   const estado = rmsAvg >= tc ? 'critico' : rmsAvg >= ta ? 'alerta' : slopePct > 5 ? 'atencion' : 'excelente';
 
+  // Guardar estado actual para OT
+  window._otData = {
+    motorId:   document.getElementById('cfg-motorid').value || 'MTR-4712',
+    estado,
+    hs,
+    rmsAvg:    rmsAvg.toFixed(3),
+    rmsMax:    rmsMax.toFixed(3),
+    temp:      buffer.length ? buffer[buffer.length-1].temp.toFixed(1) : '—',
+    fftAlerts,
+    slopePct:  slopePct.toFixed(1),
+    lecturas:  active.length,
+  };
+
   // Actualizar pill salud
   setPill('hs', hs + '%', hs >= 70 ? 'c-ok' : hs >= 40 ? 'c-w' : 'c-d', hs < 70);
 
@@ -956,6 +1012,11 @@ function updateAnalysis() {
     </div>
 
     ${fftAlerts.map(a => `<div class="alert-item" style="border-left-color:var(--red)"><div>⚡ <b>Alerta FFT</b><br>${a}</div></div>`).join('')}
+
+    ${(estado === 'alerta' || estado === 'critico') ? `
+    <button class="ot-btn" onclick="abrirOT()">
+      🔧 GENERAR ORDEN DE TRABAJO
+    </button>` : ''}
 
     <div class="card">
       <div class="chdr"><h3>📊 Indicadores de condición</h3></div>
@@ -1153,6 +1214,130 @@ function showToast(msg) {
 /* ════════════════════════════════════════════════
    INIT — autoconexión al abrir
 ════════════════════════════════════════════════ */
+// ── ORDEN DE TRABAJO ─────────────────────────────────────────
+function abrirOT() {
+  const d = window._otData;
+  if (!d) return;
+  const now = new Date();
+  const fecha = now.toLocaleDateString('es') + ' ' + now.toLocaleTimeString('es');
+  const prioridad = d.estado === 'critico' ? '🔴 URGENTE' : '🟠 ALTA';
+
+  const motivos = [];
+  if (+d.rmsAvg >= window._gTa?.() || +d.rmsAvg >= 7.1) motivos.push(`Vibración RMS promedio en zona de alerta: ${d.rmsAvg} mm/s`);
+  if (+d.rmsMax >= window._gTc?.() || +d.rmsMax >= 11.0) motivos.push(`Vibración RMS máxima en zona crítica: ${d.rmsMax} mm/s`);
+  if (d.fftAlerts && d.fftAlerts.length) d.fftAlerts.forEach(a => motivos.push(a));
+  if (+d.slopePct > 10) motivos.push(`Tendencia creciente de vibración: +${d.slopePct}%`);
+
+  const recomendaciones = [];
+  if (d.fftAlerts && d.fftAlerts.some(a => a.includes('BPFO'))) recomendaciones.push('Inspección y cambio de rodamiento (pista exterior)');
+  if (d.fftAlerts && d.fftAlerts.some(a => a.includes('BPFI'))) recomendaciones.push('Inspección y cambio de rodamiento (pista interior)');
+  if (+d.rmsAvg >= 7.1) recomendaciones.push('Análisis de desbalanceo y alineación');
+  if (+d.temp > 75) recomendaciones.push('Verificar sistema de ventilación');
+  if (!recomendaciones.length) recomendaciones.push('Inspección general del motor y componentes mecánicos');
+
+  window._otPayload = { motorId: d.motorId, fecha, prioridad, motivos, recomendaciones, hs: d.hs, rmsAvg: d.rmsAvg, rmsMax: d.rmsMax, temp: d.temp };
+
+  document.getElementById('ot-preview').innerHTML = `
+    <b>Motor:</b> ${d.motorId}<br>
+    <b>Fecha/Hora:</b> ${fecha}<br>
+    <b>Prioridad:</b> ${prioridad}<br>
+    <b>Health Score:</b> ${d.hs}%<br>
+    <b>RMS promedio:</b> ${d.rmsAvg} mm/s &nbsp;|&nbsp; <b>RMS máximo:</b> ${d.rmsMax} mm/s<br>
+    <b>Temperatura:</b> ${d.temp}°C<br>
+    <br>
+    <b>Motivo(s):</b><br>${motivos.map(m => '· ' + m).join('<br>') || '· Condición de alerta detectada'}<br>
+    <br>
+    <b>Recomendación(es):</b><br>${recomendaciones.map(r => '· ' + r).join('<br>')}
+  `;
+  document.getElementById('ot-modal-bg').classList.remove('hidden');
+}
+
+function closeOT() {
+  document.getElementById('ot-modal-bg').classList.add('hidden');
+}
+
+function confirmarOT() {
+  const p = window._otPayload;
+  if (!p) return;
+
+  // 1 — Publicar por MQTT
+  const topic = `motores/${p.motorId}/OT`;
+  const payload = JSON.stringify({
+    ...p,
+    tipo: 'OT',
+    generada_por: 'Motor 4.0 App',
+  });
+  if (mqttClient && mqttClient.isConnected()) {
+    const msg = new Paho.MQTT.Message(payload);
+    msg.destinationName = topic;
+    msg.qos = 1;
+    msg.retained = true;
+    mqttClient.send(msg);
+    showToast(`✓ OT publicada en ${topic}`);
+  } else {
+    showToast('⚠ Sin conexión MQTT — solo se genera el PDF');
+  }
+
+  // 2 — Generar PDF
+  generarPDF(p);
+  closeOT();
+}
+
+function generarPDF(p) {
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;padding:32px;color:#1a1a2e;font-size:12px;}
+    h1{font-size:20px;color:#cc3300;margin-bottom:4px;}
+    .sub{color:#666;font-size:11px;margin-bottom:24px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+    td{padding:7px 10px;border-bottom:1px solid #eee;vertical-align:top;}
+    td:first-child{font-weight:700;width:160px;color:#333;}
+    .section{font-size:13px;font-weight:700;color:#cc3300;margin:20px 0 8px;border-bottom:2px solid #cc3300;padding-bottom:4px;}
+    .item{padding:4px 0 4px 12px;border-left:3px solid #cc3300;margin-bottom:4px;}
+    .footer{margin-top:32px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:12px;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:4px;font-weight:700;font-size:11px;}
+    .badge.urgente{background:#ff4757;color:#fff;}
+    .badge.alta{background:#ff8c42;color:#fff;}
+  </style></head><body>
+  <h1>🔧 Orden de Trabajo — Motor 4.0</h1>
+  <div class="sub">Generada automáticamente por sistema de monitoreo RAMI 4.0</div>
+  
+  <div class="section">Datos del activo</div>
+  <table>
+    <tr><td>ID Motor</td><td>${p.motorId}</td></tr>
+    <tr><td>Fecha / Hora</td><td>${p.fecha}</td></tr>
+    <tr><td>Prioridad</td><td><span class="badge ${p.prioridad.includes('URGENTE') ? 'urgente' : 'alta'}">${p.prioridad}</span></td></tr>
+    <tr><td>Health Score</td><td>${p.hs}%</td></tr>
+  </table>
+
+  <div class="section">Valores en el momento de la alerta</div>
+  <table>
+    <tr><td>RMS Promedio</td><td>${p.rmsAvg} mm/s</td></tr>
+    <tr><td>RMS Máximo</td><td>${p.rmsMax} mm/s</td></tr>
+    <tr><td>Temperatura</td><td>${p.temp}°C</td></tr>
+  </table>
+
+  <div class="section">Motivo(s) de la OT</div>
+  ${p.motivos.map(m => `<div class="item">${m}</div>`).join('')}
+
+  <div class="section">Recomendación(es)</div>
+  ${p.recomendaciones.map(r => `<div class="item">${r}</div>`).join('')}
+
+  <div class="footer">
+    Generada por Motor 4.0 · Sistema de monitoreo RAMI 4.0 · ${p.fecha}
+  </div>
+  </body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `OT_${p.motorId}_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ PDF generado y descargado');
+}
+
 // ── INSTALL PWA ──────────────────────────────────────────────
 let deferredPrompt = null;
 
