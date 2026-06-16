@@ -1,4 +1,4 @@
-const V = 'motor40-live-v1';
+const V = 'motor40-live-v2';
 const FILES = [
   '/motor_monitor/',
   '/motor_monitor/index.html',
