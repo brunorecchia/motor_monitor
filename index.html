@@ -309,6 +309,13 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:
             <div style="font-size:9px;color:var(--tx2);">mm/s (máx)</div>
           </div>
         </div>
+        <div style="margin-top:8px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--tx3);margin-bottom:3px;">⏱ HORAS DE FUNCIONAMIENTO ACUMULADAS</div>
+            <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--acc);" id="big-horas">—</div>
+          </div>
+          <button onclick="resetHoras()" style="background:none;border:1px solid var(--b2);border-radius:6px;color:var(--tx3);font-family:var(--mono);font-size:9px;padding:5px 9px;cursor:pointer;">RESET</button>
+        </div>
       </div>
     </div>
 
@@ -674,6 +681,7 @@ function onMessage(msg) {
 
   const pt = { t, x, y, z, temp, fft_vx, fft_fx, fft_vy, fft_fy, fft_vz, fft_fz };
   pushBuffer(pt);
+  acumularHoras(pt);
 
   // Actualizar header
   if (d.motor_id) {
@@ -686,6 +694,47 @@ function onMessage(msg) {
   updateFFTTab(pt);
   updateAnalysis();
   updateFooter(t);
+}
+
+/* ════════════════════════════════════════════════
+   HORAS DE FUNCIONAMIENTO ACUMULADAS
+════════════════════════════════════════════════ */
+let lastMsgTime = null;
+
+function acumularHoras(pt) {
+  const on = Math.max(pt.x, pt.y, pt.z) > gOnOff();
+  const now = pt.t.getTime();
+
+  if (lastMsgTime && on) {
+    const deltaMs = now - lastMsgTime;
+    // Ignorar saltos grandes (app recién abierta, reconexión, etc.) — máx 30s
+    if (deltaMs > 0 && deltaMs < 30000) {
+      let totalMs = +localStorage.getItem('motor40_horas_ms') || 0;
+      totalMs += deltaMs;
+      localStorage.setItem('motor40_horas_ms', totalMs);
+    }
+  }
+  lastMsgTime = now;
+  renderHoras();
+}
+
+function renderHoras() {
+  const totalMs = +localStorage.getItem('motor40_horas_ms') || 0;
+  const totalHoras = totalMs / 3600000;
+  const el = document.getElementById('big-horas');
+  if (!el) return;
+  if (totalHoras < 1) {
+    el.textContent = (totalHoras * 60).toFixed(0) + ' min';
+  } else {
+    el.textContent = totalHoras.toFixed(2) + ' h';
+  }
+}
+
+function resetHoras() {
+  if (!confirm('¿Reiniciar el contador de horas acumuladas?')) return;
+  localStorage.setItem('motor40_horas_ms', 0);
+  renderHoras();
+  showToast('⏱ Contador de horas reiniciado');
 }
 
 /* ════════════════════════════════════════════════
@@ -1357,6 +1406,7 @@ if ('serviceWorker' in navigator) {
 
 // Restaurar buffer de sesión anterior
 loadBuffer();
+renderHoras();
 
 // Cargar config guardada y conectar automáticamente
 loadConfig();
