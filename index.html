@@ -1025,6 +1025,13 @@ function updateAnalysis() {
     lecturas:  active.length,
   };
 
+  // Publicar propuesta automática por WhatsApp (solo una vez por episodio de alerta)
+  if (estado === 'alerta' || estado === 'critico') {
+    proponerOTPorWhatsApp(window._otData);
+  } else {
+    propuestaWhatsAppEnviada = false; // reset cuando vuelve a estar OK
+  }
+
   el.innerHTML = `
     <div class="state-banner ${estado}">
       <div class="sb-row">
@@ -1246,6 +1253,32 @@ function showToast(msg) {
    INIT — autoconexión al abrir
 ════════════════════════════════════════════════ */
 // ── ORDEN DE TRABAJO ─────────────────────────────────────────
+// ── PROPUESTA AUTOMÁTICA POR WHATSAPP ───────────────────────
+let propuestaWhatsAppEnviada = false;
+
+function proponerOTPorWhatsApp(otData) {
+  if (propuestaWhatsAppEnviada) return; // ya se mandó para este episodio de alerta
+  if (!mqttClient || !mqttClient.isConnected()) return;
+
+  propuestaWhatsAppEnviada = true;
+
+  const topic = `motores/${otData.motorId}/OT/propuesta`;
+  const payload = JSON.stringify({
+    ...otData,
+    tipo: 'PROPUESTA_OT',
+    fecha: new Date().toLocaleString('es'),
+    generado_por: 'Motor 4.0 App (automático)',
+  });
+
+  const msg = new Paho.MQTT.Message(payload);
+  msg.destinationName = topic;
+  msg.qos = 1;
+  mqttClient.send(msg);
+
+  showToast('📲 Propuesta de OT enviada por WhatsApp a Mantenimiento');
+  console.log('MQTT → propuesta OT:', topic, payload);
+}
+
 function abrirOT() {
   const d = window._otData;
   if (!d) return;
